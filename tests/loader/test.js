@@ -11,7 +11,7 @@ jQuery(function(){
                 },
                 {
                     "label": "Core module has loaded:",
-                    "test": function(){ return typeof E.core === "object" }
+                    "test": function(){ return typeof E.mousePosition === "object" }
                 },
                 {
                     "label": "External tests module has loaded:",
