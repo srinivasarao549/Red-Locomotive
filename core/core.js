@@ -43,12 +43,12 @@ RedLocomotive('core', function(options, engine){
         //window focus
         jQuery(window).focus(function (e) {
             active = true;
-            engine.hook('focus', e);
+            engine.hook('active', e);
         });
         //window blur
         jQuery(window).blur(function (e) {
-            active = true;
-            engine.hook('blur', e);
+            active = false;
+            engine.hook('inactive', e);
         });
     })();
 
