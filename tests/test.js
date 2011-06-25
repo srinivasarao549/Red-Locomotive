@@ -49,6 +49,13 @@ jQuery(function(){
         });
 
         //Sprite Module Tests
-        
+        test("Sprite Module", function () {
+            function loadSprite() {
+                engine.sprite.create('test.img', 0, 0, 4, 4, false);
+            }
+
+            ok(loadSprite(), "Loaded a sprite successfully");
+        });
+
     });
 });

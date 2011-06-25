@@ -153,7 +153,8 @@ jQuery (function () {
      */
     function run(){
         var coreModules = [
-            "core"
+            "core",
+            "sprites"
         ],
             i = 1;
 
@@ -167,8 +168,8 @@ jQuery (function () {
                 i += 1;
             }
         }
-        for (var i = 0; i < coreModules.length; i += 1) {
-            require(coreModules[i], count, true);
+        for (var ii = 0; ii < coreModules.length; ii += 1) {
+            require(coreModules[ii], count, true);
         }
     }
 

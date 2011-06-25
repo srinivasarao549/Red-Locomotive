@@ -13,7 +13,7 @@ RedLocomotive('sprites', function(options, engine){
      * @param row {int} The sprite row
      * @param w {int} The sprite width
      * @param h {int} The sprite height
-     * @param skipAlphaMap {bool} [optional] If true, A alpha map will not be created. Defaults to false
+     * @param skipAlphaMap {boolean} [optional] If true, A alpha map will not be created. Defaults to false
      */
     function newSprite(url, col, row, w, h, skipAlphaMap) {
         sprites[url] = {
@@ -31,7 +31,7 @@ RedLocomotive('sprites', function(options, engine){
      * getImage - Downloads the image and caches it, if its already cached then use the cached version
      * @param url {string} The url to the sprite sheet image
      * @param callback {function} [optional] A function that will fire when the image has been fully downloaded
-     * @param forceNewImage {bool} [optional] If true, the image will download whether its cached or not. Though not recommended this can be used to update the spriteSheet revision already in memory.
+     * @param forceNewImage {boolean} [optional] If true, the image will download whether its cached or not. Though not recommended this can be used to update the spriteSheet revision already in memory.
      */
     function getImage(url, callback, forceNewImage) {
 
@@ -58,8 +58,9 @@ RedLocomotive('sprites', function(options, engine){
     /**
      * updateSprite - Used by newSprite() to make an alpha map of a sprite. It is a seperate function because it is possible to prevent newSprite() from calling updateSprite(). Separating the two functions allows manual mapping later.
      * @param url {string} The url to the sprite sheet image
+     * @param callback {function} [optional] A calback function to be fired after the sprite has been created
      */
-    function updateSprite(url) {
+    function updateSprite(url, callback) {
 
         //reference the sprite data
         var sprite = sprites[url];
@@ -126,10 +127,21 @@ RedLocomotive('sprites', function(options, engine){
         }, false);
     }
 
+    /**
+     * removeSprite - Removes a sprite and its corresponding image
+     * @param url {string} The sprite url
+     */
+    function removeSprite(url) {
+        delete sprites[url];
+        delete images[url];
+    }
+
     //return the module api
     return {
-        "newSprite": newSprite,
-        "updateSprite": updateSprite,
-        "sprites": sprites
+        "sprite": {
+            "create": newSprite,
+            "update": updateSprite,
+            "clear": removeSprite
+        }
     }
 });
