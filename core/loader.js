@@ -16,7 +16,6 @@ jQuery (function () {
 
 	/**
 	 * loadScript - Load one or more scripts then fire a callback
-	 *
 	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
 	 * @param url {string} A string containing a script url.
 	 * @param callback {function} [optional] A function to be executed after the requested script has been loaded.
@@ -28,7 +27,7 @@ jQuery (function () {
 
 			//load the script via ajax
 			$.ajax({
-				url: options.baseUrl + url || '',
+				url: options.baseUrl + url || 'Red-Locomotive/',
 				dataType: 'script',
 				complete: function() {
 					callback();
@@ -39,7 +38,6 @@ jQuery (function () {
 
 	/**
 	 * require - Load a module for use
-	 *
 	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
 	 * @param moduleName {string} A string containing a name of a module. See README of a list of modules.
 	 */
@@ -59,7 +57,7 @@ jQuery (function () {
 		        if(!inCore) {
 				    Engine[moduleName] = modules[moduleName](options, Engine);
                 } else {
-				    Engine = jQuery.extend(Engine, modules[moduleName](options, Engine));
+				    Engine = jQuery.extend(true, Engine, modules[moduleName](options, Engine));
                 }
 			}
 			if (typeof callback === "function") {
@@ -71,6 +69,7 @@ jQuery (function () {
 
     /**
      * hook - Executes a set of actions by hook name.
+	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
      * @param hookName {string} The hook name.
      * @param data {object} [optional] Any data object to be passed to the actions on execution.
      */
@@ -86,6 +85,7 @@ jQuery (function () {
 
     /**
      * action - registers a callback to be fired on the execution of a hook by name.
+	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
      * @param hookName {string} Name of the hook to be paired with.
      * @param actionName {string} Name for the action. this is needed for deleting the action later.
      * @param callback {function} Callback to be executed on execution of the defined hook.
@@ -114,6 +114,7 @@ jQuery (function () {
 
     /**
      * clearHook - removes a hook, and all paired actions.
+	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
      * @param hookName {string} Name of hook to clear.
      */
     function clearHook (hookName) {
@@ -123,7 +124,8 @@ jQuery (function () {
     }
 
     /**
-     * clearAction - deletes a
+     * clearAction - deletes an action
+	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
      * @param hookName {string} Name of hook the action is paired to.
      * @param actionName {string} Name action to clear with in the hook.
      */
@@ -134,7 +136,7 @@ jQuery (function () {
     }
 
 	//add require and load to red loco
-    Engine = jQuery.extend(Engine, {
+    Engine = jQuery.extend(true, Engine, {
         "hook": hook,
         "action": action,
         "clearHook": clearHook,
@@ -142,43 +144,29 @@ jQuery (function () {
         //strip the 'core' flag so that the end user cannot reload core modules
 		"require": function(moduleName, callback) {
             require(moduleName, callback);
+        },
+        "loader": {
+		    "loadScript": loadScript
+        },
+        "DATA": {
+            "MODULES": modules,
+            "HOOKS": hooks
         }
     });
-	Engine.loader = {
-		"loadScript": loadScript
-	};
-
-    /**
-     * run - integrates all core modules and executes the kernel callback
-     */
-    function run(){
-        var coreModules = [
-            "core",
-            "sprites"
-        ],
-            i = 1;
-
-        function count() {
-            if (i >= coreModules.length) {
-                
-                //run the kernel
-                kernel(Engine);
-
-            } else {
-                i += 1;
-            }
-        }
-        for (var ii = 0; ii < coreModules.length; ii += 1) {
-            require(coreModules[ii], count, true);
-        }
-    }
 
     /**
      * RedLocomotive - Creates and returns an engine, or takes a module and extends Red Locomotive
+	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
      * @param input {object|string} A module name, or a set of options.
      * @param callback {object} A module or the kernel script.
      */
     function RedLocomotive(input, callback) {
+        var coreModules = [
+            "core",
+            "elements",
+            "sprites"
+        ],
+            i = 1;
 
         //if loading a module
         if (typeof callback === "function") {
@@ -187,7 +175,16 @@ jQuery (function () {
             } else if(typeof input === "object") {
                 options = input;
                 kernel = callback;
-                run();
+                function count() {
+                    if (i >= coreModules.length) {
+                        kernel(Engine);
+                    } else {
+                        i += 1;
+                    }
+                }
+                for (var ii = 0; ii < coreModules.length; ii += 1) {
+                    require(coreModules[ii], count, true);
+                }
             }
         }
 

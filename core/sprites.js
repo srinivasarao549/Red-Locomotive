@@ -4,41 +4,43 @@ RedLocomotive('sprites', function(options, engine){
     var sprites = {},
         images = {},
         canvas = jQuery('<canvas></canvas>'),
-        canvasContext = canvas[0].getContext('2d');
+        canvasContext = canvas[0].getContext('2d'),
+        zoomLevels;
 
     /**
-     * newSprite - Makes a new sprite for use with elements
+     * newSpriteSheet - Makes a new sprite sheet for use with elements
+	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
      * @param url {string} The url to the sprite sheet image
-     * @param col {int} The sprite column
-     * @param row {int} The sprite row
      * @param w {int} The sprite width
      * @param h {int} The sprite height
-     * @param skipAlphaMap {boolean} [optional] If true, A alpha map will not be created. Defaults to false
+     * @param skipPixelMap {boolean} [optional] If true, A pixel map will not be created. Defaults to false
      */
-    function newSprite(url, col, row, w, h, skipAlphaMap) {
-        sprites[url] = {
-            "spriteColumn": col,
-            "spriteRow": row,
-            "spriteWidth": w,
-            "spriteHeight": h,
-            "imageData": [],
-            "skipAlphaMap": skipAlphaMap
-        };
-        updateSprite(url);
+    function newSpriteSheet(url, w, h, skipPixelMap, callback) {
+        if(typeof url === "object") {
+            callback = w;
+            for (var i = 0; i < url.length; i += 1) {
+                newSpriteSheet(url[i].url || '', url[i].spriteWidth || 0, url[i].spriteHeight || 0, url[i].skipPixelMap || false);
+            }
+        } else {
+            sprites[url] = {
+                "spriteWidth": w,
+                "spriteHeight": h,
+                "imageData": false,
+                "skipPixelMap": skipPixelMap,
+                "image": images[url]
+            };
+            updateSpriteSheet(url, 1, callback);
+        }
     }
 
     /**
      * getImage - Downloads the image and caches it, if its already cached then use the cached version
+	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
      * @param url {string} The url to the sprite sheet image
      * @param callback {function} [optional] A function that will fire when the image has been fully downloaded
      * @param forceNewImage {boolean} [optional] If true, the image will download whether its cached or not. Though not recommended this can be used to update the spriteSheet revision already in memory.
      */
-    function getImage(url, callback, forceNewImage) {
-
-        //a wrapper for the callback
-        function exec() {
-            callback(images[url]);
-        }
+    function loadImage(url, callback, forceNewImage) {
 
         //if the image has not been created, or we're forcing an overwrite
         if (!images[url] || forceNewImage) {
@@ -47,101 +49,151 @@ RedLocomotive('sprites', function(options, engine){
             images[url] = jQuery('<img src="' + url + '" alt="">');
 
             //on ready fire the callback
-            images[url].ready(exec);
+            images[url].ready(function () {
+                callback(images[url]);
+            });
 
         //else fire the callback
         } else {
-            exec();
+            callback(images[url]);
         }
     }
 
     /**
-     * updateSprite - Used by newSprite() to make an alpha map of a sprite. It is a seperate function because it is possible to prevent newSprite() from calling updateSprite(). Separating the two functions allows manual mapping later.
+     * updateSpriteSheet - Used by newSpriteSheet() to make an pixel map of a sprite. It is a separate function because it is possible to prevent newSpriteSheet() from calling updateSpriteSheet(). Separating the two functions allows manual mapping later.
+     * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
      * @param url {string} The url to the sprite sheet image
-     * @param callback {function} [optional] A calback function to be fired after the sprite has been created
+     * @param callback {function} [optional] A callback function to be fired after the sprite has been created
      */
-    function updateSprite(url, callback) {
+    function updateSpriteSheet(url, callback) {
 
         //reference the sprite data
         var sprite = sprites[url];
 
         //create an image
-        getImage(url, function (image) {
+        loadImage(url, function (image) {
 
             //get the image data
-            if (sprite.skipAlphaMap) {
+            if (sprite.skipPixelMap) {
 
                 //collect vars
-                var pixelZoom = engine.pixelZoom || 1,
-                    imageWidth = image.width(),
+                var imageWidth = image.width(),
                     imageHeight = image.height(),
-                    dirtyImageWidth = Math.floor(imageWidth * pixelZoom),
-                    dirtyImageHeight = Math.floor(imageHeight * pixelZoom),
-                    dirtySpriteWidth = Math.floor(sprite.width * pixelZoom),
-                    dirtySpriteHeight = Math.floor(sprite.height * pixelZoom),
                     columns = Math.floor(imageWidth / sprite.width),
                     rows = Math.floor(imageHeight / sprite.height),
                     pixelData = sprite.imageData,
                     spritePixelData = false;
 
-                //size the canvas to the image
-                canvas.width(dirtyImageWidth).height(dirtyImageHeight);
+                for (var z = 0; z < zoomLevels.length; z += 1) {
+                    var zoomLevel = zoomLevels[z],
+                        dirtyImageWidth = Math.floor(imageWidth * zoomLevel),
+                        dirtyImageHeight = Math.floor(imageHeight * zoomLevel),
+                        dirtySpriteWidth = Math.floor(sprite.width * zoomLevel),
+                        dirtySpriteHeight = Math.floor(sprite.height * zoomLevel);
 
-                //blit the image on to the canvas
-                canvasContext.drawImage(image[0], 0, 0, imageWidth, imageHeight, 0, 0, dirtyImageWidth, dirtyImageHeight);
+                    //size the canvas to the image
+                    canvas.width(dirtyImageWidth).height(dirtyImageHeight);
 
-                //loop each sprite column
-                for (var c = 0; c < columns; c += 1) {
+                    //blit the image on to the canvas
+                    canvasContext.drawImage(image[0], 0, 0, imageWidth, imageHeight, 0, 0, dirtyImageWidth, dirtyImageHeight);
 
-                    //if the pixel data column does not exist then create it
-                    if (!pixelData[c]) pixelData[c] = [];
+                    //create the zoomlevel if it does not exist
+                    if (!pixelData[zoomLevel]) pixelData[zoomLevel] = [];
 
-                    //loop through each sprite row
-                    for (var r = 0; r < rows; r += 1) {
+                    //loop each sprite column
+                    for (var c = 0; c < columns; c += 1) {
 
-                        //if the pixel data row does not exist then create it
-                        if (!pixelData[c][r]) pixelData[c][r] = [];
+                        //if the pixel data column does not exist then create it
+                        if (!pixelData[zoomLevel][c]) pixelData[zoomLevel][c] = [];
 
-                        //get the pixel data
-                        spritePixelData = canvasContext.getImageData(c * dirtySpriteWidth, r * dirtySpriteHeight, dirtyImageWidth, dirtyImageHeight);
-
-                        //extract each pixel
-                        for (var prgb = 0; prgb < spritePixelData; prgb += 4) {
-                            var p = prgb / 4,
-                                pr = Math.floor(p / dirtySpriteWidth),
-                                pc = p - Math.floor(dirtyImageWidth * pr);
+                        //loop through each sprite row
+                        for (var r = 0; r < rows; r += 1) {
 
                             //if the pixel data row does not exist then create it
-                            if (!pixelData[c][r][pc]) pixelData[c][r][pc] = [];
+                            if (!pixelData[zoomLevel][c][r]) pixelData[zoomLevel][c][r] = [];
 
-                            //create the pixel slot for the alpha data
-                            pixelData[c][r][pc][pr] = spritePixelData[prgb + 3];
+                            //get the pixel data
+                            spritePixelData = canvasContext.getImageData(c * dirtySpriteWidth, r * dirtySpriteHeight, dirtyImageWidth, dirtyImageHeight);
+
+                            //extract each pixel
+                            for (var prgb = 0; prgb < spritePixelData; prgb += 4) {
+                                var p = prgb / 4,
+                                    pr = Math.floor(p / dirtySpriteWidth),
+                                    pc = p - Math.floor(dirtyImageWidth * pr);
+
+                                //if the pixel data row does not exist then create it
+                                if (!pixelData[zoomLevel][c][r][pc]) pixelData[zoomLevel][c][r][pc] = [];
+
+                                //create the pixel slot for the rgba data
+                                pixelData[zoomLevel][c][r][pc][pr] = [spritePixelData[prgb], spritePixelData[prgb + 1], spritePixelData[prgb + 2], spritePixelData[prgb + 3]];
+                            }
                         }
                     }
                 }
             } else {
-
-                //save empty data
                 sprite.imageData = false;
+            }
+
+            if  (typeof callback === "function") {
+                callback();
             }
         }, false);
     }
 
+    function addZoomLevel(zoomLevel, force) {
+        if(!jQuery.inArray(zoomLevel, zoomLevels) || force){
+            zoomLevels.push(zoomLevel);
+            for (var spriteName in sprites) {
+                if (sprites.hasOwnProperty(spriteName)) {
+                    updateSpriteSheet(sprites[spriteName].url);
+                }
+            }
+        }
+    }
+
     /**
-     * removeSprite - Removes a sprite and its corresponding image
+     * removeImage - Removes an image from the cache
+	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
+     * @param url {string} The image url
+     */
+    function removeImage(url) {
+        delete images[url];
+    }
+
+    /**
+     * removeSpriteSheet - Removes a sprite sheet and its corresponding image
+	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
      * @param url {string} The sprite url
      */
-    function removeSprite(url) {
+    function removeSpriteSheet(url) {
         delete sprites[url];
         delete images[url];
     }
 
+    /**
+     * getSpriteSheet - returns a sprite sheet data object by url
+     * @param spriteSheetName
+     */
+    function getSpriteSheet(spriteSheetName) {
+        return sprites[spriteSheetName];
+    }
+
     //return the module api
     return {
-        "sprite": {
-            "create": newSprite,
-            "update": updateSprite,
-            "clear": removeSprite
+        "spriteSheet": {
+            "get": getSpriteSheet,
+            "create": newSpriteSheet,
+            "update": updateSpriteSheet,
+            "clear": removeSpriteSheet
+        },
+        "image": {
+            "load": loadImage,
+            "clear": removeImage
+        },
+        "addZoomLevel": addZoomLevel,
+        "DATA": {
+            "IMAGES": images,
+            "SPRITES": sprites
         }
     }
 });

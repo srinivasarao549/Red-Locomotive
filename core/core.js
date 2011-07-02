@@ -3,18 +3,18 @@ RedLocomotive('core', function(options, engine){
 
     //create configuration
     var config = jQuery.extend({
-        "selector": "canvas",
         "fps": 30
     }, options);
 
     //get the canvas
-    var canvas = jQuery(config.selector),
-        mousePos = [0, 0],
+    var mousePos = [0, 0],
         mousedown = [false, 0, 0],
-        active = false;
+        active = false,
+        viewports = [];
 
     //core loop
     setInterval(function () {
+        draw();
         engine.hook('core-loop');
     }, Math.round(1000 / config.fps));
 
@@ -52,11 +52,24 @@ RedLocomotive('core', function(options, engine){
         });
     })();
 
+    function draw() {
+
+    }
+
+    function newViewport(selector, zoom) {
+        viewports.push({
+            "selector": jQuery(selector)
+        });
+    }
+
     //return the core api
     return {
         "mousePosition": mousePos,
         "mouseDown": mousedown,
-        "active": active
+        "active": active,
+        "DATA": {
+            "VIEWPORTS": viewports
+        }
     }
 
 });
