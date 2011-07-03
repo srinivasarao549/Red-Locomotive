@@ -8,7 +8,9 @@ RedLocomotive("elements", function(options, engine) {
             "x": x,
             "y": y,
             "width": w,
-            "height": h
+            "height": h,
+			"sequence": false,
+			"frame": 0
         }
     }
 
