@@ -34,8 +34,8 @@ RedLocomotive('sprites', function(options, engine){
             }
         } else {
 			sprites[url] = {
-				"width": w,
-				"height": h,
+				"spriteWidth": w,
+				"spriteHeight": h,
 				"imageData": [],
 				"skipPixelMap": skipPixelMap,
 				"image": false
@@ -79,23 +79,23 @@ RedLocomotive('sprites', function(options, engine){
     function updateSpriteSheet(url, callback) {
 
         //reference the sprite data
-        var sprite = sprites[url];
+        var spriteSheet = sprites[url];
 
         //create an image
         loadImage(url, function (image) {
 
 			//save the image
-			sprite.image = image;
+			spriteSheet.image = image;
 
             //get the image data
-            if (!sprite.skipPixelMap) {
+            if (!spriteSheet.skipPixelMap) {
 
                 //collect vars
                 var imageWidth = image[0].width,
                     imageHeight = image[0].height,
-                    columns = Math.floor(imageWidth / sprite.width),
-                    rows = Math.floor(imageHeight / sprite.height),
-                    pixelData = sprite.imageData,
+                    columns = Math.floor(imageWidth / spriteSheet.spriteWidth),
+                    rows = Math.floor(imageHeight / spriteSheet.spriteHeight),
+                    pixelData = spriteSheet.imageData,
                     spritePixelData = false;
 					
 				//size the canvas to the image
@@ -118,12 +118,12 @@ RedLocomotive('sprites', function(options, engine){
 
 						//get the pixel data
 						// top left coods, bottom right coords
-						spritePixelData = canvasContext.getImageData(c * sprite.width, r * sprite.height, (r * sprite.width) + sprite.width, (r * sprite.height) + sprite.height).data;
+						spritePixelData = canvasContext.getImageData(c * spriteSheet.spriteWidth, r * spriteSheet.spriteHeight, (r * spriteSheet.spriteWidth) + spriteSheet.spriteWidth, (r * spriteSheet.spriteHeight) + spriteSheet.spriteHeight).data;
 
 						//extract each pixel
 						for (var prgb = 0; prgb < spritePixelData.length; prgb += 4) {
 							var p = prgb / 4,
-								pr = Math.floor(p / sprite.width),
+								pr = Math.floor(p / spriteSheet.spriteWidth),
 								pc = p - Math.floor(imageWidth * pr);
 
 							//if the pixel data row does not exist then create it
@@ -136,7 +136,7 @@ RedLocomotive('sprites', function(options, engine){
                 }
 
             } else {
-                sprite.imageData = false;
+                spriteSheet.imageData = false;
             }
 
             if  (typeof callback === "function") {
@@ -183,10 +183,6 @@ RedLocomotive('sprites', function(options, engine){
         "image": {
             "load": loadImage,
             "clear": removeImage
-        },
-        "DATA": {
-            "IMAGES": images,
-            "SPRITES": sprites
         }
     }
 });

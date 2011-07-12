@@ -4,7 +4,9 @@ jQuery(function () {
         "baseUrl": "../../"
     }, function(engine) {
 
-		engine.viewport.create('main', 'canvas', 1);
+		window.engine = engine;
+
+		engine.viewport.create('main', 'canvas', 1024, 768);
 
 		//create a test sprite sheet
         engine.spriteSheet.create([
@@ -17,8 +19,7 @@ jQuery(function () {
 
         	//create a test element
         	var testElement = engine.element.create('test', 'sprites/test.png', 100, 100, 100, 100);
-
-        	console.log(testElement);
+			
     	});
     });
 });

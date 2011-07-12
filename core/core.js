@@ -10,7 +10,8 @@ RedLocomotive('core', function(options, engine){
 	var mousePos = [0, 0],
 		mousedown = [false, 0, 0],
 		active = false,
-		viewports = {};
+		viewports = {},
+		fpsElement;
 
 	//core loop
 	setInterval(function () {
@@ -20,6 +21,7 @@ RedLocomotive('core', function(options, engine){
 
 	//core secondary loop
 	setInterval(function () {
+		fps();
 		engine.hook('core-sec-loop');
 	}, 1000);
 
@@ -52,11 +54,21 @@ RedLocomotive('core', function(options, engine){
 		});
 	})();
 
+	function fps() {
+		if (options.showFPS && engine.text) {
+			if (!fpsElement) {
+				fpsElement = engine.text.create('FPS ELEMENT', 'FPS: 0', 16, 10, 10);
+			}
+
+		}
+	}
+
 	function draw() {
 
 		var viewport,
 			height,
 			width,
+			elements,
 			element,
 			image,
 			sW,
@@ -81,58 +93,39 @@ RedLocomotive('core', function(options, engine){
 				//empty the viewport
 				viewport.context.clearRect(0, 0, width, height);
 
-				//draw the new content
-				for (var elementName in engine.DATA.ELEMENTS) {
-					if (engine.DATA.ELEMENTS.hasOwnProperty(elementName) ) {
+				//draw elements
+				drawElements(viewport);
 
-						//get the element
-						element = engine.DATA.ELEMENTS[elementName];
+				//draw text elements
+				drawTextElements(viewport);
 
-						if (element.spriteSheet && element.sequence) {
-
-							//abstract some data
-							image = element.spriteSheet.image[0],
-							sW = element.spriteSheet.spriteWidth,
-							sH = element.spriteSheet.spriteHeight,
-
-							cP = element.sequence[element.frame],
-							sX = Math.floor(cP[0] * sW),
-							sY = Math.floor(cP[1] * sH),
-
-							dW = Math.floor(element.spriteSheet.spriteWidth * viewport.zoom),
-							dH = Math.floor(element.spriteSheet.spriteHeight * viewport.zoom),
-							dX = Math.floor(element.position[0] * viewport.zoom),
-							dY = Math.floor(element.position[1] * viewport.zoom);
-
-							//draw the sprite on to the
-							viewport.context.drawImage(image, sX, sY, sW, sH, dX, dY, dW, dH);
-
-							if (element.frame < element.sequence.length) {
-								element.frame += 1;
-							} else {
-								element.frame = 0;
-							}
-						}
-
-					}
-				}
 			}
 
 		}
 
 	}
 
-	function newViewport(viewportName, selector, zoom) {
+	function newViewport(viewportName, selector, width, height) {
 
 		//get the canvas
 		var canvas = jQuery(selector),
-			context = canvas[0].getContext('2d'),
-			zoom = zoom || 1;
+			context = canvas[0].getContext('2d');
+
+		if (!width && !height) {
+			canvas[0].width = canvas.width();
+			canvas[0].height = canvas.height();
+		} else {
+			if (width) {
+				canvas[0].width = width;
+			}
+			if (height) {
+				canvas[0].height = height;
+			}
+		}
 
 		if(viewportName && canvas[0].tagName === "CANVAS"){
 			viewports[viewportName] = {
 				"node": canvas,
-				"zoom": zoom,
 				"context": context
 			};
 		}
@@ -146,6 +139,102 @@ RedLocomotive('core', function(options, engine){
 		return false;
 	}
 
+	function drawElements(viewport) {
+		var elements,
+			element,
+			image,
+			sW,
+			sH,
+			cP,
+			sX,
+			sY,
+			dW,
+			dH,
+			dX,
+			dY;
+
+		//get the elements
+		elements = engine.element.get('all');
+
+		//draw the new content
+		for (var elementName in elements) {
+			if (elements.hasOwnProperty(elementName) ) {
+
+				//get the element
+				element = elements[elementName];
+
+				if (element.spriteSheet && element.sequence) {
+
+					//abstract some data
+					image = element.spriteSheet.image,
+					sW = element.spriteSheet.spriteWidth,
+					sH = element.spriteSheet.spriteHeight,
+
+					cP = element.sequence[element.frame],
+					sX = Math.floor(cP[0] * sW),
+					sY = Math.floor(cP[1] * sH),
+
+					dW = element.spriteSheet.spriteWidth,
+					dH = element.spriteSheet.spriteHeight,
+					dX = element.x,
+					dY = element.y;
+
+					//draw the sprite on to the
+					viewport.context.drawImage(image[0], sX, sY, sW, sH, dX, dY, dW, dH);
+
+					if (element.frame < element.sequence.length - 1) {
+						element.frame += 1;
+					} else {
+						element.frame = 0;
+					}
+				}
+
+			}
+		}
+	}
+
+	function drawTextElements(viewport) {
+		var textElements,
+			textElement,
+			font,
+			fontString,
+			size,
+			text,
+			x,
+			y,
+			w;
+
+		//get the elements
+		textElements = engine.text.get('all');
+
+		//draw the new content
+		for (var elementName in textElements) {
+			if (textElements.hasOwnProperty(elementName) ) {
+
+				//get the element
+				textElement = textElements[elementName];
+
+				if (textElement.text && textElement.size && textElement.font) {
+
+					//abstract some data
+					font = textElement.font;
+					size = textElement.size;
+					text = textElement.text;
+					x = textElement.x;
+					y = textElement.y;
+					w = textElement.width || undefined;
+
+					//set the font
+					fontString = size + 'px ' + font;
+
+					viewport.context.fillText(text, x, y, w);
+
+				}
+
+			}
+		}
+	}
+
 	//return the core api
 	return {
 		"mousePosition": mousePos,
@@ -154,9 +243,6 @@ RedLocomotive('core', function(options, engine){
 		"viewport": {
 			"create": newViewport,
 			"remove": removeViewport
-		},
-		"DATA": {
-			"VIEWPORTS": viewports
 		}
 	}
 
