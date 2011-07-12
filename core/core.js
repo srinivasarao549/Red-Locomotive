@@ -75,8 +75,8 @@ RedLocomotive('core', function(options, engine){
 				viewport = viewports[viewportName];
 
 				//get the viewport height and width
-				width = viewport.width();
-				height = viewport.height();
+				width = viewport.node.width();
+				height = viewport.node.height();
 
 				//empty the viewport
 				viewport.context.clearRect(0, 0, width, height);
@@ -126,10 +126,10 @@ RedLocomotive('core', function(options, engine){
 
 		//get the canvas
 		var canvas = jQuery(selector),
-			context = canvas[0].getContext('2d');
+			context = canvas[0].getContext('2d'),
 			zoom = zoom || 1;
 
-		if(viewportName && canvas[0].tagName === "canvas"){
+		if(viewportName && canvas[0].tagName === "CANVAS"){
 			viewports[viewportName] = {
 				"node": canvas,
 				"zoom": zoom,
@@ -151,6 +151,10 @@ RedLocomotive('core', function(options, engine){
 		"mousePosition": mousePos,
 		"mouseDown": mousedown,
 		"active": active,
+		"viewport": {
+			"create": newViewport,
+			"remove": removeViewport
+		},
 		"DATA": {
 			"VIEWPORTS": viewports
 		}

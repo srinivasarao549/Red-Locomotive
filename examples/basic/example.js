@@ -3,21 +3,22 @@ jQuery(function () {
     RedLocomotive({
         "baseUrl": "../../"
     }, function(engine) {
+
+		engine.viewport.create('main', 'canvas', 1);
+
+		//create a test sprite sheet
         engine.spriteSheet.create([
             {
-                "url": "sprite/test.png",
+                "url": "sprites/test.png",
                 "spriteWidth": 100,
                 "spriteHeight": 100
             }
         ], function() {
-            alert('loaded');
-        });
 
-        //create a test element
-        //var testElement = engine.element.create('test', 'test', 100, 100, 100, 100);
+        	//create a test element
+        	var testElement = engine.element.create('test', 'sprites/test.png', 100, 100, 100, 100);
 
-        //
-
-        //console.log(engine);
+        	console.log(testElement);
+    	});
     });
 });

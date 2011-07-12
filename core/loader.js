@@ -3,7 +3,7 @@ jQuery (function () {
 	/**
 	 * RED LOCOMOTIVE LOADER
 	 *
-	 * This script contain's Red Locomotive's loader object and its boot script.
+	 * This script contains Red Locomotive's loader object and its boot script.
 	 *
 	 * !!! DO NOT TOUCH !!! If this is broken NOTHING WILL EVER WORK!
 	 */
@@ -12,7 +12,8 @@ jQuery (function () {
         modules = {},
         hooks = {},
         kernel = function() {},
-        options;
+        options,
+		state;
 
 	/**
 	 * loadScript - Load one or more scripts then fire a callback
@@ -168,20 +169,41 @@ jQuery (function () {
         ],
             i = 1;
 
-        //if loading a module
+		//a callbakc must be given
         if (typeof callback === "function") {
+
+			//expect a module if a string is given as the first argument
             if (typeof input === "string") {
                 modules[input] = callback;
+
+			//expect an initialization if the first argument is an object
             } else if(typeof input === "object") {
+
+				//set the engine options
                 options = input;
+
+				//set the kernel
                 kernel = callback;
+
+				//set the state
+				state = 2;
+
+				//function that executes the kernel after loading all the modules
                 function count() {
+
+					//if all the modules are loaded
                     if (i >= coreModules.length) {
+						
+						//execute the kernel
                         kernel(Engine);
+
+					//if still loading some modules count and wait
                     } else {
                         i += 1;
                     }
                 }
+
+				//loop through each of the modules and load them with require
                 for (var ii = 0; ii < coreModules.length; ii += 1) {
                     require(coreModules[ii], count, true);
                 }
