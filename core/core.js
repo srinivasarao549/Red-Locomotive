@@ -3,7 +3,7 @@ RedLocomotive('core', function(options, engine){
 
 	//create configuration
 	var config = jQuery.extend({
-		"fps": 30
+		"fps": 60
 	}, options);
 
 	//get the canvas
@@ -11,18 +11,33 @@ RedLocomotive('core', function(options, engine){
 		mousedown = [false, 0, 0],
 		active = false,
 		viewports = {},
-		fpsElement;
+		timers = {},
+		fpsElement,
+		frameCount = 0,
+		realFps = '?';
 
 	//core loop
 	setInterval(function () {
+
 		draw();
+		clock();
+
 		engine.hook('core-loop');
+
+		frameCount += 1;
+		
 	}, Math.round(1000 / config.fps));
 
 	//core secondary loop
 	setInterval(function () {
+
 		fps();
+		
 		engine.hook('core-sec-loop');
+
+		realFps = frameCount + 1;
+		frameCount = 0;
+
 	}, 1000);
 
 	//events
@@ -54,32 +69,106 @@ RedLocomotive('core', function(options, engine){
 		});
 	})();
 
-	function fps() {
-		if (options.showFPS && engine.text) {
-			if (!fpsElement) {
-				fpsElement = engine.text.create('FPS ELEMENT', 'FPS: 0', 16, 10, 10);
-			}
+	function clock() {
+		var timer;
+		for (var id in timers) {
+			if (timers.hasOwnProperty(id)) {
+				timer = timers[id];
 
+				if (timer.counter < timer.frames - 1) {
+					timer.counter += 1;
+				} else {
+
+					if (typeof timer.callback === 'function') {
+						timer.callback();
+					}
+					if (timer.type === 'timeout') {
+						delete timers[id];
+					} else if (timer.type === 'interval') {
+						timer.counter = 0;
+					}
+				}
+			}
 		}
 	}
 
+	function after(callback, frames) {
+		return newTimer('timeout', frames, callback);
+	}
+
+	function every(callback, frames) {
+		return newTimer('interval', frames, callback);
+	}
+
+	function newTimer(type, frames, callback) {
+		var id;
+
+		/**
+		 * Removes the new timer
+		 */
+		function remove() {
+			if(timers[id]) {
+				delete timers[id];
+			}
+		}
+
+		/**
+		 * Changes the frame rate
+		 * @param frames
+		 */
+		function setFrames(frames) {
+			if(timers[id] && frames) {
+				timers[id].frames = frames;
+			}
+		}
+
+		function idGen() {
+			var newDate = new Date;
+			return newDate.getTime() + (Math.random() * 10) + (Math.random() * 10);
+		}
+
+		if (type === 'interval' || type === 'timeout') {
+
+			id = idGen();
+
+			timers[id] = {
+				"type": type,
+				"frames": frames,
+				"counter": 0,
+				"callback": callback
+			};
+
+			return {
+				"clear": remove,
+				"setFrames": setFrames
+			}
+
+		}
+
+		return false;
+	}
+
+	/**
+	 * Draws the fps
+	 */
+	function fps() {
+		if (options.showFPS && engine.text) {
+			if (!fpsElement) {
+				fpsElement = engine.text.create('FPS ELEMENT', 'FPS: ' + realFps, 16, 0, 16);
+			} else {
+				fpsElement.text = 'FPS: ' + realFps;
+			}
+		}
+	}
+
+	/**
+	 * Draws everything!!!
+	 */
 	function draw() {
 
 		var viewport,
 			height,
-			width,
-			elements,
-			element,
-			image,
-			sW,
-			sH,
-			cP,
-			sX,
-			sY,
-			dW,
-			dH,
-			dX,
-			dY;
+			width;
 
 		//loop through each viewport
 		for (var viewportName in viewports) {
@@ -87,8 +176,8 @@ RedLocomotive('core', function(options, engine){
 				viewport = viewports[viewportName];
 
 				//get the viewport height and width
-				width = viewport.node.width();
-				height = viewport.node.height();
+				width = viewport.node[0].width;
+				height = viewport.node[0].height;
 
 				//empty the viewport
 				viewport.context.clearRect(0, 0, width, height);
@@ -105,6 +194,13 @@ RedLocomotive('core', function(options, engine){
 
 	}
 
+	/**
+	 * New Viewport
+	 * @param viewportName
+	 * @param selector
+	 * @param width
+	 * @param height
+	 */
 	function newViewport(viewportName, selector, width, height) {
 
 		//get the canvas
@@ -129,8 +225,14 @@ RedLocomotive('core', function(options, engine){
 				"context": context
 			};
 		}
+
+		return viewports[viewportName];
 	}
 
+	/**
+	 * Remove Viewport
+	 * @param viewportName
+	 */
 	function removeViewport(viewportName) {
 		if(viewports[viewportName]){
 			delete viewports[viewportName];
@@ -139,6 +241,10 @@ RedLocomotive('core', function(options, engine){
 		return false;
 	}
 
+	/**
+	 * Draws all elements
+	 * @param viewport
+	 */
 	function drawElements(viewport) {
 		var elements,
 			element,
@@ -166,17 +272,17 @@ RedLocomotive('core', function(options, engine){
 				if (element.spriteSheet && element.sequence) {
 
 					//abstract some data
-					image = element.spriteSheet.image,
-					sW = element.spriteSheet.spriteWidth,
-					sH = element.spriteSheet.spriteHeight,
+					image = element.spriteSheet.image;
+					sW = element.spriteSheet.spriteWidth;
+					sH = element.spriteSheet.spriteHeight;
 
-					cP = element.sequence[element.frame],
-					sX = Math.floor(cP[0] * sW),
-					sY = Math.floor(cP[1] * sH),
+					cP = element.sequence[element.frame];
+					sX = Math.floor(cP[0] * sW);
+					sY = Math.floor(cP[1] * sH);
 
-					dW = element.spriteSheet.spriteWidth,
-					dH = element.spriteSheet.spriteHeight,
-					dX = element.x,
+					dW = element.spriteSheet.spriteWidth;
+					dH = element.spriteSheet.spriteHeight;
+					dX = element.x;
 					dY = element.y;
 
 					//draw the sprite on to the
@@ -193,6 +299,10 @@ RedLocomotive('core', function(options, engine){
 		}
 	}
 
+	/**
+	 * Draws all text elements
+	 * @param viewport
+	 */
 	function drawTextElements(viewport) {
 		var textElements,
 			textElement,
@@ -222,11 +332,12 @@ RedLocomotive('core', function(options, engine){
 					text = textElement.text;
 					x = textElement.x;
 					y = textElement.y;
-					w = textElement.width || undefined;
+					w = textElement.width || false;
 
 					//set the font
 					fontString = size + 'px ' + font;
 
+					viewport.context.font = fontString;
 					viewport.context.fillText(text, x, y, w);
 
 				}
@@ -243,7 +354,9 @@ RedLocomotive('core', function(options, engine){
 		"viewport": {
 			"create": newViewport,
 			"remove": removeViewport
-		}
+		},
+		"every": every,
+		"after": after
 	}
 
 });

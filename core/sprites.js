@@ -118,7 +118,7 @@ RedLocomotive('sprites', function(options, engine){
 
 						//get the pixel data
 						// top left coods, bottom right coords
-						spritePixelData = canvasContext.getImageData(c * spriteSheet.spriteWidth, r * spriteSheet.spriteHeight, (r * spriteSheet.spriteWidth) + spriteSheet.spriteWidth, (r * spriteSheet.spriteHeight) + spriteSheet.spriteHeight).data;
+						spritePixelData = canvasContext.getImageData(c * spriteSheet.spriteWidth, r * spriteSheet.spriteHeight, spriteSheet.spriteWidth, spriteSheet.spriteHeight).data;
 
 						//extract each pixel
 						for (var prgb = 0; prgb < spritePixelData.length; prgb += 4) {
