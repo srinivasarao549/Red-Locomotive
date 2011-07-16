@@ -22,8 +22,8 @@ RedLocomotive('animations', function (options, engine) {
 				var distanceX = endX - element.x,
 					distanceY = endY - element.y;
 
-				element.x += Math.round(distanceX / counter);
-				element.y += Math.round(distanceY / counter);
+				element.x += Math.round((distanceX / counter) * 10) / 10;
+				element.y += Math.round((distanceY / counter) * 10) / 10;
 
 				counter -= 1;
 
@@ -40,9 +40,34 @@ RedLocomotive('animations', function (options, engine) {
 		}
 	}
 
+	/**
+	 * Animate any element with a spritesheet.
+	 * @param element
+	 * @param sequence
+	 */
+	function sequence(element, sequence, frames, callback) {
+		
+		var frame = 0;
+
+		if (element.spriteSheet && element.spritePos && typeof sequence === 'object') {
+			var aniTimer = engine.every(function () {
+
+				element.spritePos = sequence[frame];
+
+				frame += 1;
+
+				if (frame >= sequence.length) {
+					aniTimer.clear();
+				}
+				
+			}, frames, true);
+		}
+	}
+
 	return {
 		"animate": {
-			"move": move
+			"move": move,
+			"sequence": sequence
 		}
 	}
 

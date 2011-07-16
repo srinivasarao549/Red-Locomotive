@@ -11,8 +11,10 @@ RedLocomotive("elements", function(options, engine) {
 	 * @param y
 	 * @param w
 	 * @param h
+	 * @param sX
+	 * @param sY
 	 */
-    function newElement(elementName, spriteUrl, x, y, w, h) {
+    function newElement(elementName, spriteUrl, x, y, w, h, sX, sY) {
 		
 		if(elementName !== 'all') {
 			elements[elementName] = {
@@ -21,7 +23,7 @@ RedLocomotive("elements", function(options, engine) {
 				"y": y,
 				"width": w,
 				"height": h,
-				"spritePos": [0, 0]
+				"spritePos": [sX || 0, sY || 0]
 			};
 			return elements[elementName];
 		}
