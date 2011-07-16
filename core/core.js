@@ -92,16 +92,17 @@ RedLocomotive('core', function(options, engine){
 		}
 	}
 
-	function after(callback, frames) {
-		return newTimer('timeout', frames, callback);
+	function after(callback, frames, startNow) {
+		return newTimer('timeout', frames, callback, startNow);
 	}
 
-	function every(callback, frames) {
-		return newTimer('interval', frames, callback);
+	function every(callback, frames, startNow) {
+		return newTimer('interval', frames, callback, startNow);
 	}
 
-	function newTimer(type, frames, callback) {
-		var id;
+	function newTimer(type, frames, callback, startNow) {
+		var id,
+			counter;
 
 		/**
 		 * Removes the new timer
@@ -131,10 +132,16 @@ RedLocomotive('core', function(options, engine){
 
 			id = idGen();
 
+			if (startNow) {
+				counter = frames;
+			} else {
+				counter = 0;
+			}
+
 			timers[id] = {
 				"type": type,
 				"frames": frames,
-				"counter": 0,
+				"counter": counter,
 				"callback": callback
 			};
 
@@ -269,14 +276,14 @@ RedLocomotive('core', function(options, engine){
 				//get the element
 				element = elements[elementName];
 
-				if (element.spriteSheet && element.sequence) {
+				if (element.spriteSheet && element.spriteSheet.image) {
 
 					//abstract some data
 					image = element.spriteSheet.image;
 					sW = element.spriteSheet.spriteWidth;
 					sH = element.spriteSheet.spriteHeight;
 
-					cP = element.sequence[element.frame];
+					cP = element.spritePos;
 					sX = Math.floor(cP[0] * sW);
 					sY = Math.floor(cP[1] * sH);
 
@@ -287,12 +294,6 @@ RedLocomotive('core', function(options, engine){
 
 					//draw the sprite on to the
 					viewport.context.drawImage(image[0], sX, sY, sW, sH, dX, dY, dW, dH);
-
-					if (element.frame < element.sequence.length - 1) {
-						element.frame += 1;
-					} else {
-						element.frame = 0;
-					}
 				}
 
 			}

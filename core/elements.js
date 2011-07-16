@@ -21,8 +21,7 @@ RedLocomotive("elements", function(options, engine) {
 				"y": y,
 				"width": w,
 				"height": h,
-				"sequence": [[0, 0]],
-				"frame": 0
+				"spritePos": [0, 0]
 			};
 			return elements[elementName];
 		}

@@ -165,7 +165,8 @@ jQuery (function () {
         var coreModules = [
             "core",
             "elements",
-            "sprites"
+            "sprites",
+			"animations"
         ],
             i = 1;
 
