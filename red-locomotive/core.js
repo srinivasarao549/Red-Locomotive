@@ -3,14 +3,25 @@ RedLocomotive('core', function(options, engine){
 
 	//create configuration
 	var config = jQuery.extend({
-		"fps": 60
+		"fps": 30,
+		"showFPS": false,
+		"pauseOnBlur": true
 	}, options);
 
 	//get the canvas
 	var mousePos = [0, 0],
 		mousedown = [false, 0, 0],
-		active = false,
+		keyboard = {
+			"up": false,
+			"down": false,
+			"right": false,
+			"left": false,
+			"enter": false,
+			"esc": false
+		},
+		active = true,
 		viewports = {},
+		primaryViewport = false,
 		timers = {},
 		fpsElement,
 		frameCount = 0,
@@ -18,6 +29,10 @@ RedLocomotive('core', function(options, engine){
 
 	//core loop
 	setInterval(function () {
+
+		if(!active) {
+			return true;
+		}
 
 		draw();
 		clock();
@@ -30,6 +45,10 @@ RedLocomotive('core', function(options, engine){
 
 	//core secondary loop
 	setInterval(function () {
+
+		if(!active) {
+			return true;
+		}
 
 		fps();
 		
@@ -59,15 +78,42 @@ RedLocomotive('core', function(options, engine){
 		});
 		//window focus
 		jQuery(window).focus(function (e) {
-			active = true;
+			if(config.pauseOnBlur) {
+				active = true;
+			}
 			engine.hook('active', e);
 		});
 		//window blur
 		jQuery(window).blur(function (e) {
-			active = false;
+			if(config.pauseOnBlur) {
+				active = false;
+			}
 			engine.hook('inactive', e);
 		});
+		jQuery(window).keydown(function(e){
+			if(e.keyCode === 37) {keyboard.left = true; return false;}
+			if(e.keyCode === 38) {keyboard.up = true; return false;}
+			if(e.keyCode === 39) {keyboard.right = true; return false;}
+			if(e.keyCode === 40) {keyboard.down = true; return false;}
+			if(e.keyCode === 27) {keyboard.esc = true; return false;}
+			if(e.keyCode === 13) {keyboard.enter = true; return false;}
+			engine.hook('keydown', e);
+		});
+		jQuery(window).keyup(function(e){
+			if(e.keyCode === 37) {keyboard.left = false; return false;}
+			if(e.keyCode === 38) {keyboard.up = false; return false;}
+			if(e.keyCode === 39) {keyboard.right = false; return false;}
+			if(e.keyCode === 40) {keyboard.down = false; return false;}
+			if(e.keyCode === 27) {keyboard.esc = false; return false;}
+			if(e.keyCode === 13) {keyboard.enter = false; return false;}
+			engine.hook('keyup', e);
+		});
 	})();
+
+	function idGen() {
+		var newDate = new Date;
+		return newDate.getTime() + (Math.random() * 10) + (Math.random() * 10) + (Math.random() * 10);
+	}
 
 	function clock() {
 		var timer;
@@ -121,11 +167,6 @@ RedLocomotive('core', function(options, engine){
 			if(timers[id] && frames) {
 				timers[id].frames = frames;
 			}
-		}
-
-		function idGen() {
-			var newDate = new Date;
-			return newDate.getTime() + (Math.random() * 10) + (Math.random() * 10);
 		}
 
 		if (type === 'interval' || type === 'timeout') {
@@ -231,6 +272,10 @@ RedLocomotive('core', function(options, engine){
 				"node": canvas,
 				"context": context
 			};
+		}
+
+		if(!primaryViewport) {
+			primaryViewport = viewports[viewportName];
 		}
 
 		return viewports[viewportName];
@@ -347,17 +392,35 @@ RedLocomotive('core', function(options, engine){
 		}
 	}
 
+	function getMousePos() {
+		return mousePos;
+	}
+
+	function getMouseDown() {
+		return mousedown;
+	}
+
+	function getKeyboard() {
+		return keyboard;
+	}
+
+	function getActive() {
+		return active;
+	}
+
 	//return the core api
 	return {
-		"mousePosition": mousePos,
-		"mouseDown": mousedown,
-		"active": active,
+		"mousePosition": getMousePos,
+		"mouseDown": getMouseDown,
+		"keyboard": getKeyboard,
+		"active": getActive,
 		"viewport": {
 			"create": newViewport,
 			"remove": removeViewport
 		},
 		"every": every,
-		"after": after
+		"after": after,
+		"idGen": idGen
 	}
 
 });

@@ -58,6 +58,9 @@ RedLocomotive('animations', function (options, engine) {
 
 				if (frame >= sequence.length) {
 					aniTimer.clear();
+					if(typeof callback == 'function') {
+						callback();
+					}
 				}
 				
 			}, frames, true);

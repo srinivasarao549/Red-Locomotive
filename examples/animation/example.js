@@ -6,7 +6,8 @@ window.onload = function(){
 		//Configuration
 		"baseUrl": "../../",
 		"fps": 30,
-		"showFPS": true
+		"showFPS": true,
+		"pauseOnBlur": true
 
 
 	}, function(engine) {
