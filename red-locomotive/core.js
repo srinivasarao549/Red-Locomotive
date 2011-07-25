@@ -9,23 +9,27 @@ RedLocomotive('core', function(options, engine){
 	}, options);
 
 	//get the canvas
-	var mousePos = [0, 0],
+	var lastId = 0,
+        mousePos = [0, 0],
 		mousedown = [false, 0, 0],
 		keyboard = {
-			"up": false,
-			"down": false,
-			"right": false,
-			"left": false,
+			"axisCode": 0,
 			"enter": false,
 			"esc": false
 		},
 		active = true,
-		viewports = {},
 		primaryViewport = false,
+		frameCount = 0,
+		realFps = '?',
+		viewports = {},
 		timers = {},
 		fpsElement,
-		frameCount = 0,
-		realFps = '?';
+		tanMap = {},
+		sinMap = {},
+		cosMap = {},
+		atanMap = {},
+		asinMap = {},
+		acosMap = {};
 
 	//core loop
 	setInterval(function () {
@@ -46,21 +50,21 @@ RedLocomotive('core', function(options, engine){
 	//core secondary loop
 	setInterval(function () {
 
-		if(!active) {
-			return true;
-		}
+		if(!active) { return true; }
 
 		fps();
 		
 		engine.hook('core-sec-loop');
 
-		realFps = frameCount + 1;
+		realFps = frameCount;
 		frameCount = 0;
 
 	}, 1000);
 
 	//events
 	(function events() {
+		var depressedKeyCodes = [];
+
 		//mouse position
 		jQuery(document).mousemove(function (e) {
 			mousePos = [e.pageX, e.pageY];
@@ -70,6 +74,9 @@ RedLocomotive('core', function(options, engine){
 		jQuery(document).mousedown(function (e) {
 			mousedown = [true, e.pageX, e.pageY];
 			engine.hook('mousedown', e);
+			if(!active) {
+				active = true;
+			}
 		});
 		//mouse up
 		jQuery(document).mouseup(function (e) {
@@ -78,41 +85,191 @@ RedLocomotive('core', function(options, engine){
 		});
 		//window focus
 		jQuery(window).focus(function (e) {
-			if(config.pauseOnBlur) {
+			if (config.pauseOnBlur) {
 				active = true;
 			}
 			engine.hook('active', e);
 		});
 		//window blur
 		jQuery(window).blur(function (e) {
-			if(config.pauseOnBlur) {
+			if (config.pauseOnBlur) {
 				active = false;
 			}
 			engine.hook('inactive', e);
 		});
+
 		jQuery(window).keydown(function(e){
-			if(e.keyCode === 37) {keyboard.left = true; return false;}
-			if(e.keyCode === 38) {keyboard.up = true; return false;}
-			if(e.keyCode === 39) {keyboard.right = true; return false;}
-			if(e.keyCode === 40) {keyboard.down = true; return false;}
-			if(e.keyCode === 27) {keyboard.esc = true; return false;}
-			if(e.keyCode === 13) {keyboard.enter = true; return false;}
-			engine.hook('keydown', e);
+            var fired = false;
+			if(e.keyCode === 38 && !depressedKeyCodes[38]) { keyboard.axisCode += 1; depressedKeyCodes[38] = true; fired = true; }
+			if(e.keyCode === 39 && !depressedKeyCodes[39]) { keyboard.axisCode += 10; depressedKeyCodes[39] = true; fired = true; }
+			if(e.keyCode === 40 && !depressedKeyCodes[40]) { keyboard.axisCode += 100; depressedKeyCodes[40] = true; fired = true; }
+			if(e.keyCode === 37 && !depressedKeyCodes[37]) { keyboard.axisCode += 1000; depressedKeyCodes[37] = true; fired = true; }
+			if(e.keyCode === 27) { keyboard.esc = true; fired = true; }
+			if(e.keyCode === 13) { keyboard.enter = true; fired = true; }
+			if (fired) {
+				engine.hook('keydown', e);
+				return false;
+			}
 		});
+
 		jQuery(window).keyup(function(e){
-			if(e.keyCode === 37) {keyboard.left = false; return false;}
-			if(e.keyCode === 38) {keyboard.up = false; return false;}
-			if(e.keyCode === 39) {keyboard.right = false; return false;}
-			if(e.keyCode === 40) {keyboard.down = false; return false;}
-			if(e.keyCode === 27) {keyboard.esc = false; return false;}
-			if(e.keyCode === 13) {keyboard.enter = false; return false;}
-			engine.hook('keyup', e);
+            var fired = false;
+			if(e.keyCode === 38) { keyboard.axisCode -= 1; depressedKeyCodes[38] = false; fired = true; }
+			if(e.keyCode === 39) { keyboard.axisCode -= 10; depressedKeyCodes[39] = false; fired = true; }
+			if(e.keyCode === 40) { keyboard.axisCode -= 100; depressedKeyCodes[40] = false; fired = true; }
+			if(e.keyCode === 37) { keyboard.axisCode -= 1000; depressedKeyCodes[37] = false; fired = true; }
+			if(e.keyCode === 27) { keyboard.esc = false; fired = true; }
+			if(e.keyCode === 13) { keyboard.enter = false; fired = true; }
+			if (fired) {
+				engine.hook('keyup', e);
+				return false;
+			}
 		});
 	})();
 
+	function random(multi) {
+		return Math.floor(Math.random() * (multi || 100)) || 0;
+	}
+
 	function idGen() {
-		var newDate = new Date;
-		return newDate.getTime() + (Math.random() * 10) + (Math.random() * 10) + (Math.random() * 10);
+        lastId += 1;
+		return lastId;
+	}
+
+	/**
+	 * Returns the distance from an x and y offset.
+	 * @param xDistance
+	 * @param yDistance
+	 */
+	function distance(xDistance, yDistance) {
+
+		xDistance = xDistance < 0 ? -xDistance : xDistance;
+		yDistance = yDistance < 0 ? -yDistance : yDistance;
+
+		//use pythagoras theorem to find the distance.
+		return Math.sqrt(Math.pow(yDistance, 2) + Math.pow(xDistance, 2));
+
+	}
+	
+	/**
+	 * Returns angle of an x and y offset.
+	 * @param xDistance
+	 * @param yDistance
+	 */
+	function angle(xDistance, yDistance) {
+
+		var quad;
+
+		if (xDistance < 0) {
+			if (yDistance < 0) {
+				quad = 3;
+			} else {
+				quad = 0;
+			}
+		}
+		if (yDistance < 0) {
+			if (xDistance < 0) {
+				quad = 2;
+			} else {
+				quad = 1;
+			}
+		}
+
+		//use arc tangent to find the angle of ascent.
+		return Math.round(engine.atan(yDistance / xDistance)) + (90 * quad);
+	}
+
+	/**
+	 * Returns the end coordinates of a vector.
+	 * @param degree
+	 * @param distance
+	 */
+	function coords(degree, distance) {
+
+		//throw an error if greater than 360 or less than 0
+		if(degree >= 360) {
+            degree /=  Math.floor(degree / 360);
+		} else if(degree < 0) {
+            degree *=  Math.floor(-degree / 360);
+		}
+
+		var quad = Math.floor(degree / 90);
+		degree -= 90 * quad;
+
+        var x, y;
+
+        distance = Math.round(distance);
+
+		switch (quad) {
+			case 0:
+				y = -cos(degree) * distance;
+				x = sin(degree) * distance;
+			break;
+			case 1:
+				y = sin(degree) * distance;
+				x = cos(degree) * distance;
+			break;
+			case 2:
+				y = cos(degree) * distance;
+				x = -sin(degree) * distance;
+			break;
+			case 3:
+				y = -sin(degree) * distance;
+				x = -cos(degree) * distance;
+			break;
+		}
+
+        return {"x": x, "y": y};
+	}
+
+	function trigGen(callback) {
+		var angle = 0;
+		var trigGenTimer = engine.every(function () {
+
+			atan(tan(angle)); asin(sin(angle)); acos(cos(angle));
+
+			if(angle < 90){
+				angle += 1;
+			} else {
+				trigGenTimer.clear();
+				if(typeof callback === "function") {
+					callback();
+				}
+			}
+			
+		});
+	}
+
+	function tan(input) {
+		if(!tanMap[input]){
+			tanMap[input] = Math.tan(input * Math.PI/180);
+		}
+		return tanMap[input];
+	}
+
+	function sin(input) {
+		if(!sinMap[input]){ sinMap[input] = Math.sin(input * Math.PI/180); }
+		return sinMap[input];
+	}
+
+	function cos(input) {
+		if(!cosMap[input]){ cosMap[input] = Math.cos(input * Math.PI/180); }
+		return cosMap[input];
+	}
+
+	function atan(input) {
+		if(!atanMap[input]){ atanMap[input] = Math.atan(input * Math.PI/180); }
+		return atanMap[input];
+	}
+
+	function asin(input) {
+		if(!asinMap[input]){ asinMap[input] = Math.asin(input * Math.PI/180); }
+		return asinMap[input];
+	}
+
+	function acos(input) {
+		if(!acosMap[input]){ acosMap[input] = Math.acos(input * Math.PI/180); }
+		return acosMap[input];
 	}
 
 	function clock() {
@@ -210,6 +367,86 @@ RedLocomotive('core', function(options, engine){
 	}
 
 	/**
+	 * New Viewport
+	 * @param viewportName
+	 * @param selector
+	 * @param width
+	 * @param height
+	 */
+	function newViewport(viewportName, selector, width, height) {
+
+		if(viewportName === 'all'){
+			throw new Error('Viewport name can not be reserved word "all".');
+		}
+
+		//get the canvas
+		var canvas = jQuery(selector),
+			context = canvas[0].getContext('2d');
+
+		if (!width && !height) {
+			canvas[0].width = canvas.width();
+			canvas[0].height = canvas.height();
+		} else {
+			if (width) {
+				canvas[0].width = width;
+			}
+			if (height) {
+				canvas[0].height = height;
+			}
+		}
+
+		if(viewportName && canvas[0].tagName === "CANVAS"){
+			viewports[viewportName] = {
+				"node": canvas,
+				"context": context,
+				"x": 0,
+				"y": 0
+			};
+		}
+
+		if(!primaryViewport) {
+			primaryViewport = viewports[viewportName];
+		}
+
+		return viewports[viewportName];
+	}
+
+	function getViewport(viewportName){
+		if(viewports[viewportName]) {
+			return viewports[viewportName];
+		} else if(viewportName === 'all') {
+			return viewports;
+		} else {
+			return false;
+		}
+	}
+
+	/**
+	 * Remove Viewport
+	 * @param viewportName
+	 */
+	function removeViewport(viewportName) {
+		if(viewports[viewportName]){
+			delete viewports[viewportName];
+			return true;
+		}
+		return false;
+	}
+
+	function offsetInViewport(viewport, x, y) {
+		return (
+			//x is in left
+			(x < viewport.x) &&
+			//x is in right
+			(x > viewport.x + viewport.node[0].width) &&
+			//y is in top
+			(y < viewport.y) &&
+			//y is in bottom
+			(y > viewport.y + viewport.node[0].height)
+		);
+	}
+
+	/**
 	 * Draws everything!!!
 	 */
 	function draw() {
@@ -235,62 +472,8 @@ RedLocomotive('core', function(options, engine){
 
 				//draw text elements
 				drawTextElements(viewport);
-
-			}
-
-		}
-
-	}
-
-	/**
-	 * New Viewport
-	 * @param viewportName
-	 * @param selector
-	 * @param width
-	 * @param height
-	 */
-	function newViewport(viewportName, selector, width, height) {
-
-		//get the canvas
-		var canvas = jQuery(selector),
-			context = canvas[0].getContext('2d');
-
-		if (!width && !height) {
-			canvas[0].width = canvas.width();
-			canvas[0].height = canvas.height();
-		} else {
-			if (width) {
-				canvas[0].width = width;
-			}
-			if (height) {
-				canvas[0].height = height;
 			}
 		}
-
-		if(viewportName && canvas[0].tagName === "CANVAS"){
-			viewports[viewportName] = {
-				"node": canvas,
-				"context": context
-			};
-		}
-
-		if(!primaryViewport) {
-			primaryViewport = viewports[viewportName];
-		}
-
-		return viewports[viewportName];
-	}
-
-	/**
-	 * Remove Viewport
-	 * @param viewportName
-	 */
-	function removeViewport(viewportName) {
-		if(viewports[viewportName]){
-			delete viewports[viewportName];
-			return true;
-		}
-		return false;
 	}
 
 	/**
@@ -309,38 +492,70 @@ RedLocomotive('core', function(options, engine){
 			dW,
 			dH,
 			dX,
-			dY;
+			dY,
+			stack = [];
 
 		//get the elements
 		elements = engine.element.get('all');
 
-		//draw the new content
+		//order the new content
 		for (var elementName in elements) {
 			if (elements.hasOwnProperty(elementName) ) {
 
 				//get the element
 				element = elements[elementName];
 
+				//check to make sure its a valid element
 				if (element.spriteSheet && element.spriteSheet.image) {
-
-					//abstract some data
-					image = element.spriteSheet.image;
-					sW = element.spriteSheet.spriteWidth;
-					sH = element.spriteSheet.spriteHeight;
-
-					cP = element.spritePos;
-					sX = Math.floor(cP[0] * sW);
-					sY = Math.floor(cP[1] * sH);
-
-					dW = element.spriteSheet.spriteWidth;
-					dH = element.spriteSheet.spriteHeight;
-					dX = element.x;
-					dY = element.y;
-
-					//draw the sprite on to the
-					viewport.context.drawImage(image[0], sX, sY, sW, sH, dX, dY, dW, dH);
+					if (!stack[element.z]) {
+						stack[element.z] = [];
+					}
+					stack[element.z].push(element);
 				}
 
+			}
+		}
+
+		//draw the new content
+		for (var level in stack) {
+			if (stack.hasOwnProperty(level)) {
+				for (var i = 0; i < stack[level].length; i += 1) {
+
+					//get the element
+					element = stack[level][i];
+
+					dX = element.x - viewport.x;
+					dY = element.y - viewport.y;
+
+					//Make sure the element is in view
+					if(
+						dX + element.width > 0 &&
+						//dX + element.width > 0 &&
+						dX < viewport.node[0].width &&
+						dY > 0 &&
+						//dY + element.height > 0 &&
+						dY < viewport.node[0].height
+					) {
+						if (element.spriteSheet) {
+
+							//abstract some data
+							image = element.spriteSheet.image;
+							sW = element.spriteSheet.spriteWidth;
+							sH = element.spriteSheet.spriteHeight;
+
+							cP = element.spritePos;
+							sX = Math.floor(cP[0] * sW);
+							sY = Math.floor(cP[1] * sH);
+
+							dW = element.spriteSheet.spriteWidth;
+							dH = element.spriteSheet.spriteHeight;
+
+							//draw the sprite on to the
+							viewport.context.drawImage(image[0], sX, sY, sW, sH, dX, dY, dW, dH);
+
+						}
+					}
+				}
 			}
 		}
 	}
@@ -404,8 +619,16 @@ RedLocomotive('core', function(options, engine){
 		return keyboard;
 	}
 
-	function getActive() {
+	function loopIsActive() {
 		return active;
+	}
+
+	function pause() {
+		active = false;
+	}
+
+	function resume() {
+		active = true;
 	}
 
 	//return the core api
@@ -413,13 +636,21 @@ RedLocomotive('core', function(options, engine){
 		"mousePosition": getMousePos,
 		"mouseDown": getMouseDown,
 		"keyboard": getKeyboard,
-		"active": getActive,
+		"loopIsActive": loopIsActive,
+		"pause": pause,
+		"resume": resume,
 		"viewport": {
 			"create": newViewport,
-			"remove": removeViewport
+			"get": getViewport,
+			"remove": removeViewport,
+			"offsetInViewport": offsetInViewport
 		},
+		"distance": distance,
+		"angle": angle,
+		"coords": coords,
 		"every": every,
 		"after": after,
+		"random": random,
 		"idGen": idGen
 	}
 

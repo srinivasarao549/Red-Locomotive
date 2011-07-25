@@ -15,8 +15,7 @@
 		state;
 
 	/**
-	 * loadScript - Load one or more scripts then fire a callback
-	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
+	 * loadScript - Load one or more scripts then fire a callback.
 	 * @param url {string} A string containing a script url.
 	 * @param callback {function} [optional] A function to be executed after the requested script has been loaded.
 	 */
@@ -38,8 +37,9 @@
 
 	/**
 	 * require - Load a module for use
-	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
 	 * @param moduleName {string} A string containing a name of a module. See README of a list of modules.
+	 * @param callback {function} A function the will be executed after the module is loaded.
+	 * @param inCore {boolean} If true Require will load the module from '/core/'. If false Require will load the module from '/modules/[the module name]/'.
 	 */
 	function require(moduleName, callback, inCore) {
 
@@ -93,7 +93,6 @@
 
 	/**
 	 * hook - Executes a set of actions by hook name.
-	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
 	 * @param hookName {string} The hook name.
 	 * @param data {object} [optional] Any data object to be passed to the actions on execution.
 	 */
@@ -109,7 +108,6 @@
 
 	/**
 	 * action - registers a callback to be fired on the execution of a hook by name.
-	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
 	 * @param hookName {string} Name of the hook to be paired with.
 	 * @param actionName {string} Name for the action. this is needed for deleting the action later.
 	 * @param callback {function} Callback to be executed on execution of the defined hook.
@@ -137,8 +135,7 @@
 	}
 
 	/**
-	 * clearHook - removes a hook, and all paired actions.
-	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
+	 * clearHook - Removes a hook, and all paired actions.
 	 * @param hookName {string} Name of hook to clear.
 	 */
 	function clearHook (hookName) {
@@ -149,7 +146,6 @@
 
 	/**
 	 * clearAction - deletes an action
-	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
 	 * @param hookName {string} Name of hook the action is paired to.
 	 * @param actionName {string} Name action to clear with in the hook.
 	 */
@@ -176,16 +172,17 @@
 
 	/**
 	 * RedLocomotive - Creates and returns an engine, or takes a module and extends Red Locomotive
-	 * @author <a href="mailto:robert@thinktankdesign.ca">Robert Hurst</a>
 	 * @param input {object|string} A module name, or a set of options.
 	 * @param callback {object} A module or the kernel script.
 	 */
 	function RedLocomotive(input, callback) {
 		var coreModules = [
 				"core",
+				"audio",
 				"elements",
 				"sprites",
-				"animations"
+				"animations",
+                "collisions"
 			],
 			i = 1;
 

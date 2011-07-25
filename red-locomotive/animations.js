@@ -3,27 +3,31 @@ RedLocomotive('animations', function (options, engine) {
 	/**
 	 * Move any object that contains X and Y coordinates
 	 * @param element
-	 * @param endX
-	 * @param endY
+	 * @param degree
+	 * @param distance
 	 * @param frames
 	 */
-	function move(element, endX, endY, frames, callback) {
+	function move(element, degree, distance, frames, callback) {
 
 		//if the element has x and y values, and they are int values.
 		if (element.x && element.y) {
 
-			var moveTimer,
-				counter = frames || 1;
-
+			var counter = frames || 1,
+				moveTimer,
+                travelX,
+                travelY,
+                coords = engine.coords(degree, distance);
 
 			moveTimer = engine.every(function(){
 
-				//calculate the distance
-				var distanceX = endX - element.x,
-					distanceY = endY - element.y;
+				travelX = Math.round(coords.x / counter);
+				travelY = Math.round(coords.y / counter);
 
-				element.x += Math.round((distanceX / counter) * 10) / 10;
-				element.y += Math.round((distanceY / counter) * 10) / 10;
+                coords.x -= travelX;
+                coords.y -= travelY;
+
+				element.x += travelX;
+				element.y += travelY;
 
 				counter -= 1;
 
@@ -37,7 +41,12 @@ RedLocomotive('animations', function (options, engine) {
 					}
 				}
 			});
+
+			return {
+				"clear": moveTimer.clear
+			}
 		}
+		return false;
 	}
 
 	/**
@@ -47,7 +56,7 @@ RedLocomotive('animations', function (options, engine) {
 	 */
 	function sequence(element, sequence, frames, callback) {
 		
-		var frame = 0;
+		var frame = 0, useloop = false;
 
 		if (element.spriteSheet && element.spritePos && typeof sequence === 'object') {
 			var aniTimer = engine.every(function () {
@@ -57,7 +66,11 @@ RedLocomotive('animations', function (options, engine) {
 				frame += 1;
 
 				if (frame >= sequence.length) {
-					aniTimer.clear();
+					if(!useloop){
+						aniTimer.clear();
+					} else {
+						frame = 0;
+					}
 					if(typeof callback == 'function') {
 						callback();
 					}
@@ -65,12 +78,29 @@ RedLocomotive('animations', function (options, engine) {
 				
 			}, frames, true);
 		}
+
+		function loop() {
+			useloop = true;
+		}
+
+		function clear() {
+			aniTimer.clear();
+			if(typeof callback == 'function') {
+				callback();
+			}
+		}
+
+		return {
+			"loop": loop,
+			"clear": clear
+		}
 	}
 
 	return {
 		"animate": {
 			"move": move,
-			"sequence": sequence
+			"sequence": sequence,
+			"stop": stop
 		}
 	}
 
