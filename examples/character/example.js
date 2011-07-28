@@ -20,7 +20,7 @@ RedLocomotive({
 
 		//create a test sprite sheet
 		engine.spriteSheet.create([
-			{ "url": "sprites/test.png", "spriteWidth": 100, "spriteHeight": 100 }
+			{ "name": "test", "url": "sprites/test.png", "spriteWidth": 100, "spriteHeight": 100 }
 		], createChar);
 
 	}
@@ -28,9 +28,9 @@ RedLocomotive({
 	//create the main elements
 	function createChar() {
 
-		var test = engine.character2d.create('test', "sprites/test.png", 100, 100, 100, 100);
+		var test = engine.character2d.create('test', "test", 100, 100, 100, 100);
 
-		test.sequence.still([[0, 0], [1, 0]], [], 5);
+		test.sequence.idle([[0, 0], [1, 0]], [], 5);
 		test.sequence.up([[0, 1], [1, 1]], [], 5);
 		test.sequence.down([[0, 2], [1, 2]], [], 5);
 		test.sequence.right([[0, 3], [1, 3]], [], 5);

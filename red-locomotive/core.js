@@ -1,4 +1,4 @@
-RedLocomotive('core', function(options, engine){
+RedLocomotive('core', function(engine, options) {
 	"use strict"
 
 	//create configuration
@@ -10,7 +10,7 @@ RedLocomotive('core', function(options, engine){
 
 	//get the canvas
 	var lastId = 0,
-        mousePos = [0, 0],
+		mousePos = [0, 0],
 		mousedown = [false, 0, 0],
 		keyboard = {
 			"axisCode": 0,
@@ -29,35 +29,72 @@ RedLocomotive('core', function(options, engine){
 		cosMap = {},
 		atanMap = {},
 		asinMap = {},
-		acosMap = {};
+		acosMap = {},
+		frameSkipSampling = 0,
+		frameSkip = 0,
+		frameSkipCounter = 0;
 
 	//core loop
 	setInterval(function () {
 
-		if(!active) {
-			return true;
+		//update the frame counter
+		frameCount += 1;
+
+		//stop the loop if the system is inactive
+		if (!active) { return true; }
+
+		//draw
+		if(frameSkipCounter < frameSkip) {
+			frameSkipCounter += 1;
+		} else {
+			frameSkipCounter = 0;
+			draw();
 		}
 
-		draw();
+		//run timers
 		clock();
 
+		//call the core loop hook
 		engine.hook('core-loop');
 
-		frameCount += 1;
-		
 	}, Math.round(1000 / config.fps));
 
 	//core secondary loop
 	setInterval(function () {
 
-		if(!active) { return true; }
-
-		fps();
-		
-		engine.hook('core-sec-loop');
-
+		//update the fps
+		if (options.showFPS && engine.text) { fps(); }
 		realFps = frameCount;
 		frameCount = 0;
+
+		//stop the loop if the system is inactive
+		if (!active) { return true; }
+
+		//call the second loop hook
+		engine.hook('core-sec-loop');
+
+		//check if a frame skip is necessary
+		/*if (realFps < config.fps - 5) {
+			if (frameSkipSampling < 3) {
+				frameSkipSampling += 1;
+			} else {
+				frameSkipSampling = 0;
+				if (frameSkip < 10) {
+					frameSkip += 1;
+				}
+			}
+		}
+		
+		//reduce frame skip if performance improves
+		if (realFps > config.fps - 1) {
+			if (frameSkipSampling > 0) {
+				frameSkipSampling -= 1;
+			} else {
+				if (frameSkip > 0) {
+					frameSkip -= 1;
+				}
+			}
+		}*/
 
 	}, 1000);
 
@@ -74,9 +111,6 @@ RedLocomotive('core', function(options, engine){
 		jQuery(document).mousedown(function (e) {
 			mousedown = [true, e.pageX, e.pageY];
 			engine.hook('mousedown', e);
-			if(!active) {
-				active = true;
-			}
 		});
 		//mouse up
 		jQuery(document).mouseup(function (e) {
@@ -98,30 +132,66 @@ RedLocomotive('core', function(options, engine){
 			engine.hook('inactive', e);
 		});
 
-		jQuery(window).keydown(function(e){
-            var fired = false;
-			if(e.keyCode === 38 && !depressedKeyCodes[38]) { keyboard.axisCode += 1; depressedKeyCodes[38] = true; fired = true; }
-			if(e.keyCode === 39 && !depressedKeyCodes[39]) { keyboard.axisCode += 10; depressedKeyCodes[39] = true; fired = true; }
-			if(e.keyCode === 40 && !depressedKeyCodes[40]) { keyboard.axisCode += 100; depressedKeyCodes[40] = true; fired = true; }
-			if(e.keyCode === 37 && !depressedKeyCodes[37]) { keyboard.axisCode += 1000; depressedKeyCodes[37] = true; fired = true; }
-			if(e.keyCode === 27) { keyboard.esc = true; fired = true; }
-			if(e.keyCode === 13) { keyboard.enter = true; fired = true; }
-			if (fired) {
-				engine.hook('keydown', e);
+		jQuery(window).keydown(function(e) {
+			engine.hook('keydown', e);
+			if (e.keyCode === 38 && !depressedKeyCodes[38]) {
+				keyboard.axisCode += 1;
+				depressedKeyCodes[38] = true;
+				return false;
+			}
+			if (e.keyCode === 39 && !depressedKeyCodes[39]) {
+				keyboard.axisCode += 10;
+				depressedKeyCodes[39] = true;
+				return false;
+			}
+			if (e.keyCode === 40 && !depressedKeyCodes[40]) {
+				keyboard.axisCode += 100;
+				depressedKeyCodes[40] = true;
+				return false;
+			}
+			if (e.keyCode === 37 && !depressedKeyCodes[37]) {
+				keyboard.axisCode += 1000;
+				depressedKeyCodes[37] = true;
+				return false;
+			}
+			if (e.keyCode === 27) {
+				keyboard.esc = true;
+				return false;
+			}
+			if (e.keyCode === 13) {
+				keyboard.enter = true;
 				return false;
 			}
 		});
 
-		jQuery(window).keyup(function(e){
-            var fired = false;
-			if(e.keyCode === 38) { keyboard.axisCode -= 1; depressedKeyCodes[38] = false; fired = true; }
-			if(e.keyCode === 39) { keyboard.axisCode -= 10; depressedKeyCodes[39] = false; fired = true; }
-			if(e.keyCode === 40) { keyboard.axisCode -= 100; depressedKeyCodes[40] = false; fired = true; }
-			if(e.keyCode === 37) { keyboard.axisCode -= 1000; depressedKeyCodes[37] = false; fired = true; }
-			if(e.keyCode === 27) { keyboard.esc = false; fired = true; }
-			if(e.keyCode === 13) { keyboard.enter = false; fired = true; }
-			if (fired) {
-				engine.hook('keyup', e);
+		jQuery(window).keyup(function(e) {
+			engine.hook('keyup', e);
+			if (e.keyCode === 38) {
+				keyboard.axisCode -= 1;
+				depressedKeyCodes[38] = false;
+				return false;
+			}
+			if (e.keyCode === 39) {
+				keyboard.axisCode -= 10;
+				depressedKeyCodes[39] = false;
+				return false;
+			}
+			if (e.keyCode === 40) {
+				keyboard.axisCode -= 100;
+				depressedKeyCodes[40] = false;
+				return false;
+			}
+			if (e.keyCode === 37) {
+				keyboard.axisCode -= 1000;
+				depressedKeyCodes[37] = false;
+				return false;
+			}
+			if (e.keyCode === 27) {
+				keyboard.esc = false;
+				return false;
+			}
+			if (e.keyCode === 13) {
+				keyboard.enter = false;
 				return false;
 			}
 		});
@@ -132,7 +202,7 @@ RedLocomotive('core', function(options, engine){
 	}
 
 	function idGen() {
-        lastId += 1;
+		lastId += 1;
 		return lastId;
 	}
 
@@ -150,7 +220,7 @@ RedLocomotive('core', function(options, engine){
 		return Math.sqrt(Math.pow(yDistance, 2) + Math.pow(xDistance, 2));
 
 	}
-	
+
 	/**
 	 * Returns angle of an x and y offset.
 	 * @param xDistance
@@ -187,88 +257,100 @@ RedLocomotive('core', function(options, engine){
 	function coords(degree, distance) {
 
 		//throw an error if greater than 360 or less than 0
-		if(degree >= 360) {
-            degree /=  Math.floor(degree / 360);
-		} else if(degree < 0) {
-            degree *=  Math.floor(-degree / 360);
+		if (degree >= 360) {
+			degree /= Math.floor(degree / 360);
+		} else if (degree < 0) {
+			degree *= Math.floor(-degree / 360);
 		}
 
 		var quad = Math.floor(degree / 90);
 		degree -= 90 * quad;
 
-        var x, y;
+		var x, y;
 
-        distance = Math.round(distance);
+		distance = Math.round(distance);
 
 		switch (quad) {
 			case 0:
 				y = -cos(degree) * distance;
 				x = sin(degree) * distance;
-			break;
+				break;
 			case 1:
 				y = sin(degree) * distance;
 				x = cos(degree) * distance;
-			break;
+				break;
 			case 2:
 				y = cos(degree) * distance;
 				x = -sin(degree) * distance;
-			break;
+				break;
 			case 3:
 				y = -sin(degree) * distance;
 				x = -cos(degree) * distance;
-			break;
+				break;
 		}
 
-        return {"x": x, "y": y};
+		return {"x": x, "y": y};
 	}
 
 	function trigGen(callback) {
 		var angle = 0;
 		var trigGenTimer = engine.every(function () {
 
-			atan(tan(angle)); asin(sin(angle)); acos(cos(angle));
+			atan(tan(angle));
+			asin(sin(angle));
+			acos(cos(angle));
 
-			if(angle < 90){
+			if (angle < 90) {
 				angle += 1;
 			} else {
 				trigGenTimer.clear();
-				if(typeof callback === "function") {
+				if (typeof callback === "function") {
 					callback();
 				}
 			}
-			
+
 		});
 	}
 
 	function tan(input) {
-		if(!tanMap[input]){
-			tanMap[input] = Math.tan(input * Math.PI/180);
+		if (!tanMap[input]) {
+			tanMap[input] = Math.tan(input * Math.PI / 180);
 		}
 		return tanMap[input];
 	}
 
 	function sin(input) {
-		if(!sinMap[input]){ sinMap[input] = Math.sin(input * Math.PI/180); }
+		if (!sinMap[input]) {
+			sinMap[input] = Math.sin(input * Math.PI / 180);
+		}
 		return sinMap[input];
 	}
 
 	function cos(input) {
-		if(!cosMap[input]){ cosMap[input] = Math.cos(input * Math.PI/180); }
+		if (!cosMap[input]) {
+			cosMap[input] = Math.cos(input * Math.PI / 180);
+		}
 		return cosMap[input];
 	}
 
 	function atan(input) {
-		if(!atanMap[input]){ atanMap[input] = Math.atan(input * Math.PI/180); }
+		if (!atanMap[input]) {
+			atanMap[input] = Math.atan(input * Math.PI / 180);
+		}
 		return atanMap[input];
 	}
 
 	function asin(input) {
-		if(!asinMap[input]){ asinMap[input] = Math.asin(input * Math.PI/180); }
+		if (!asinMap[input]) {
+			asinMap[input] = Math.asin(input * Math.PI / 180);
+		}
 		return asinMap[input];
 	}
 
 	function acos(input) {
-		if(!acosMap[input]){ acosMap[input] = Math.acos(input * Math.PI/180); }
+		if (!acosMap[input]) {
+			acosMap[input] = Math.acos(input * Math.PI / 180);
+		}
 		return acosMap[input];
 	}
 
@@ -311,7 +393,7 @@ RedLocomotive('core', function(options, engine){
 		 * Removes the new timer
 		 */
 		function remove() {
-			if(timers[id]) {
+			if (timers[id]) {
 				delete timers[id];
 			}
 		}
@@ -321,7 +403,7 @@ RedLocomotive('core', function(options, engine){
 		 * @param frames
 		 */
 		function setFrames(frames) {
-			if(timers[id] && frames) {
+			if (timers[id] && frames) {
 				timers[id].frames = frames;
 			}
 		}
@@ -357,12 +439,10 @@ RedLocomotive('core', function(options, engine){
 	 * Draws the fps
 	 */
 	function fps() {
-		if (options.showFPS && engine.text) {
-			if (!fpsElement) {
-				fpsElement = engine.text.create('FPS ELEMENT', 'FPS: ' + realFps, 16, 0, 16);
-			} else {
-				fpsElement.text = 'FPS: ' + realFps;
-			}
+		if (!fpsElement) {
+			fpsElement = engine.text.create('FPS ELEMENT', 'FPS: ' + realFps + ' FS: ' + frameSkip, 16, 0, 16);
+		} else {
+			fpsElement.text = 'FPS: ' + realFps + ' FS: ' + frameSkip;
 		}
 	}
 
@@ -375,7 +455,7 @@ RedLocomotive('core', function(options, engine){
 	 */
 	function newViewport(viewportName, selector, width, height) {
 
-		if(viewportName === 'all'){
+		if (viewportName === 'all') {
 			throw new Error('Viewport name can not be reserved word "all".');
 		}
 
@@ -395,7 +475,7 @@ RedLocomotive('core', function(options, engine){
 			}
 		}
 
-		if(viewportName && canvas[0].tagName === "CANVAS"){
+		if (viewportName && canvas[0].tagName === "CANVAS") {
 			viewports[viewportName] = {
 				"node": canvas,
 				"context": context,
@@ -404,17 +484,17 @@ RedLocomotive('core', function(options, engine){
 			};
 		}
 
-		if(!primaryViewport) {
+		if (!primaryViewport) {
 			primaryViewport = viewports[viewportName];
 		}
 
 		return viewports[viewportName];
 	}
 
-	function getViewport(viewportName){
-		if(viewports[viewportName]) {
+	function getViewport(viewportName) {
+		if (viewports[viewportName]) {
 			return viewports[viewportName];
-		} else if(viewportName === 'all') {
+		} else if (viewportName === 'all') {
 			return viewports;
 		} else {
 			return false;
@@ -426,7 +506,7 @@ RedLocomotive('core', function(options, engine){
 	 * @param viewportName
 	 */
 	function removeViewport(viewportName) {
-		if(viewports[viewportName]){
+		if (viewports[viewportName]) {
 			delete viewports[viewportName];
 			return true;
 		}
@@ -437,13 +517,13 @@ RedLocomotive('core', function(options, engine){
 		return (
 			//x is in left
 			(x < viewport.x) &&
-			//x is in right
-			(x > viewport.x + viewport.node[0].width) &&
-			//y is in top
-			(y < viewport.y) &&
-			//y is in bottom
-			(y > viewport.y + viewport.node[0].height)
-		);
+				//x is in right
+				(x > viewport.x + viewport.node[0].width) &&
+				//y is in top
+				(y < viewport.y) &&
+				//y is in bottom
+				(y > viewport.y + viewport.node[0].height)
+			);
 	}
 
 	/**
@@ -483,16 +563,8 @@ RedLocomotive('core', function(options, engine){
 	function drawElements(viewport) {
 		var elements,
 			element,
-			image,
-			sW,
-			sH,
-			cP,
-			sX,
-			sY,
-			dW,
-			dH,
-			dX,
-			dY,
+			x,
+			y,
 			stack = [];
 
 		//get the elements
@@ -500,17 +572,31 @@ RedLocomotive('core', function(options, engine){
 
 		//order the new content
 		for (var elementName in elements) {
-			if (elements.hasOwnProperty(elementName) ) {
+			if (elements.hasOwnProperty(elementName)) {
 
 				//get the element
 				element = elements[elementName];
 
 				//check to make sure its a valid element
-				if (element.spriteSheet && element.spriteSheet.image) {
-					if (!stack[element.z]) {
-						stack[element.z] = [];
+				if (element.spriteSheet) {
+
+					x = element.x - viewport.x;
+					y = element.y - viewport.y;
+
+					//Make sure the element is in view
+					if (
+						x + element.width > 0 &&
+						x < viewport.node[0].width &&
+						y + element.height > 0 &&
+						y < viewport.node[0].height
+					) {
+
+						if (!stack[element.z]) {
+							stack[element.z] = [];
+						}
+						stack[element.z].push(element);
+
 					}
-					stack[element.z].push(element);
 				}
 
 			}
@@ -524,45 +610,39 @@ RedLocomotive('core', function(options, engine){
 					//get the element
 					element = stack[level][i];
 
-					dX = element.x - viewport.x;
-					dY = element.y - viewport.y;
+					//x and y
+					x = element.x - viewport.x;
+					y = element.y - viewport.y;
 
-					//Make sure the element is in view
-					if(
-						dX + element.width > 0 &&
-						//dX + element.width > 0 &&
-						dX < viewport.node[0].width &&
-						dY > 0 &&
-						//dY + element.height > 0 &&
-						dY < viewport.node[0].height
-					) {
-						if (element.spriteSheet) {
-
-							//abstract some data
-							image = element.spriteSheet.image;
-							sW = element.spriteSheet.spriteWidth;
-							sH = element.spriteSheet.spriteHeight;
-
-							cP = element.spritePos;
-							sX = Math.floor(cP[0] * sW);
-							sY = Math.floor(cP[1] * sH);
-
-							dW = element.spriteSheet.spriteWidth;
-							dH = element.spriteSheet.spriteHeight;
-
-							//draw the sprite on to the
-							viewport.context.drawImage(image[0], sX, sY, sW, sH, dX, dY, dW, dH);
-
-						}
-					}
+					//draw the element to the view
+					drawElement(element, viewport.context, x, y);
 				}
 			}
 		}
 	}
 
+	function drawElement(element, context, dX, dY) {
+
+		//abstract some data
+		var image = element.spriteSheet.image,
+			sW = element.spriteSheet.spriteWidth,
+			sH = element.spriteSheet.spriteHeight,
+
+			cP = element.spritePos,
+			sX = Math.floor(cP[0] * sW),
+			sY = Math.floor(cP[1] * sH),
+
+			dW = element.spriteSheet.spriteWidth,
+			dH = element.spriteSheet.spriteHeight;
+
+		//draw the sprite on to the
+		context.drawImage(image[0], sX, sY, sW, sH, dX, dY, dW, dH);
+
+	}
+
 	/**
 	 * Draws all text elements
-	 * @param viewport
+	 * @param viewport {object}
 	 */
 	function drawTextElements(viewport) {
 		var textElements,
@@ -580,7 +660,7 @@ RedLocomotive('core', function(options, engine){
 
 		//draw the new content
 		for (var elementName in textElements) {
-			if (textElements.hasOwnProperty(elementName) ) {
+			if (textElements.hasOwnProperty(elementName)) {
 
 				//get the element
 				textElement = textElements[elementName];
@@ -644,6 +724,9 @@ RedLocomotive('core', function(options, engine){
 			"get": getViewport,
 			"remove": removeViewport,
 			"offsetInViewport": offsetInViewport
+		},
+		"canvas": {
+			"applyElement": drawElement
 		},
 		"distance": distance,
 		"angle": angle,

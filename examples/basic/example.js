@@ -19,7 +19,7 @@ RedLocomotive({
 
 	//create a test sprite sheet
 	engine.spriteSheet.create([
-		{ "url": "sprites/test.png", "spriteWidth": 100, "spriteHeight": 100 }
+		{ "name": 'test', "url": "sprites/test.png", "spriteWidth": 100, "spriteHeight": 100 }
 	], createElements);
 
 
@@ -30,7 +30,7 @@ RedLocomotive({
 
 
 		//create a test elements
-		var testElement = engine.element.create('test', 'sprites/test.png', 300, 125, 100, 100),
+		var testElement = engine.element.create('test', 'test', 300, 125, 100, 100),
 			testTextElement = engine.text.create('test', 'Red Locomotive!', 48, -800, 100),
 			testTextElement2 = engine.text.create('test2', 'Giving your games Tractive Effort', 48, mainView.node[0].width, 300),
 			b = false;

@@ -1,4 +1,4 @@
-RedLocomotive('sprites', function(options, engine){
+RedLocomotive('sprites', function(engine, options) {
     "use strict"
 
     var sprites = {},
@@ -13,33 +13,33 @@ RedLocomotive('sprites', function(options, engine){
      * @param h {int} The sprite height
      * @param skipPixelMap {boolean} [optional] If true, A pixel map will not be created. Defaults to false
      */
-    function newSpriteSheet(url, w, h, skipPixelMap, callback) {
+    function newSpriteSheet(name, url, w, h, skipPixelMap, callback) {
 
 		var x = 0;
 
 		function exec() {
-			if(x < url.length - 1) {
+			if(x < name.length - 1) {
 				x += 1;
 			} else if(typeof callback === "function") {
 				callback();
 			}
 		}
 
-        if(typeof url === "object") {
-            callback = w;
+        if(typeof name === "object") {
+            callback = url;
 
-            for (var i = 0; i < url.length; i += 1) {
-                newSpriteSheet(url[i].url || '', url[i].spriteWidth || 0, url[i].spriteHeight || 0, url[i].skipPixelMap || false, exec);
+            for (var i = 0; i < name.length; i += 1) {
+                newSpriteSheet(name[i].name, name[i].url, name[i].spriteWidth, name[i].spriteHeight, name[i].skipPixelMap, exec);
             }
         } else {
-			sprites[url] = {
+			sprites[name] = {
 				"spriteWidth": w,
 				"spriteHeight": h,
 				"imageData": [],
 				"skipPixelMap": skipPixelMap,
 				"image": false
 			};
-			updateSpriteSheet(url, callback);
+			updateSpriteSheet(name, url, callback);
         }
     }
 
@@ -73,10 +73,10 @@ RedLocomotive('sprites', function(options, engine){
      * @param url {string} The url to the sprite sheet image
      * @param callback {function} [optional] A callback function to be fired after the sprite has been created
      */
-    function updateSpriteSheet(url, callback) {
+    function updateSpriteSheet(name, url, callback) {
 
         //reference the sprite data
-        var spriteSheet = sprites[url];
+        var spriteSheet = sprites[name];
 
         //create an image
         loadImage(url, function (image) {
@@ -96,7 +96,8 @@ RedLocomotive('sprites', function(options, engine){
                     spritePixelData = false;
 					
 				//size the canvas to the image
-				canvas.width(imageWidth).height(imageHeight);
+				canvas[0].width = imageWidth;
+				canvas[0].height = imageHeight;
 
 				//blit the image on to the canvas
 				canvasContext.drawImage(image[0], 0, 0, imageWidth, imageHeight);
@@ -114,7 +115,7 @@ RedLocomotive('sprites', function(options, engine){
 						if (!pixelData[c][r]) { pixelData[c][r] = []; }
 
 						//get the pixel data
-						// top left coods, bottom right coords
+						// top left coords, bottom right coords
 						spritePixelData = canvasContext.getImageData(c * spriteSheet.spriteWidth, r * spriteSheet.spriteHeight, spriteSheet.spriteWidth, spriteSheet.spriteHeight).data;
 
 						//extract each pixel
@@ -124,7 +125,7 @@ RedLocomotive('sprites', function(options, engine){
 								pc = p - Math.floor(imageWidth * pr);
 
 							//if the pixel data row does not exist then create it
-							if (!pixelData[c][r][pc]) { pixelData[c][r][pc] = []; }
+							if (!pixelData[c][r][pc]) {	pixelData[c][r][pc] = []; }
 
 							//create the pixel slot for the rgba data
 							pixelData[c][r][pc][pr] = [spritePixelData[prgb], spritePixelData[prgb + 1], spritePixelData[prgb + 2], spritePixelData[prgb + 3]];
@@ -154,17 +155,16 @@ RedLocomotive('sprites', function(options, engine){
      * removeSpriteSheet - Removes a sprite sheet and its corresponding image
 	 * @param url {string} The sprite url
      */
-    function removeSpriteSheet(url) {
-        delete sprites[url];
-        delete images[url];
+    function removeSpriteSheet(name) {
+        delete sprites[name];
     }
 
     /**
      * getSpriteSheet - returns a sprite sheet data object by url
      * @param url
      */
-    function getSpriteSheet(url) {
-        return sprites[url];
+    function getSpriteSheet(name) {
+        return sprites[name];
     }
 
     //return the module api

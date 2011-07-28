@@ -19,19 +19,19 @@ window.onload = function(){
 
 		//create a test sprite sheet
 		engine.spriteSheet.create([
-			{ "url": "sprites/test.png", "spriteWidth": 100, "spriteHeight": 100 }
+			{ "name": "test", "url": "sprites/test.png", "spriteWidth": 100, "spriteHeight": 100 }
 		], function(){
 
 			function renderFlashyBlock(id, x, y) {
 
 				//create the flashy block
-				var flashyBlock = engine.element.create(id, 'sprites/test.png', x + 200, y, 100, 100);
+				var flashyBlock = engine.element.create(id, 'test', x + 200, y, 100, 100);
 
 				engine.every(function () {
-					engine.animate.move(flashyBlock, x, y, 25, function () {
-						engine.animate.move(flashyBlock, x, y + 200, 25, function () {
-							engine.animate.move(flashyBlock, x + 200, y + 200, 25, function () {
-								engine.animate.move(flashyBlock, x + 200, y, 25);
+					engine.animate.move(flashyBlock, 270, 200, 25, function () {
+						engine.animate.move(flashyBlock, 180, 200, 25, function () {
+							engine.animate.move(flashyBlock, 90, 200, 25, function () {
+								engine.animate.move(flashyBlock, 0, 200, 25);
 							});
 						});
 					});

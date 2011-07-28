@@ -1,38 +1,42 @@
-RedLocomotive("elements", function(options, engine) {
+RedLocomotive("elements", function(engine, options) {
 
     var elements = {},
 		textElements = {};
 
 	/**
-	 * New Element - Creates a new basic element.
-	 * @param elementName {string} An id for the element. If an element has the same id it will be overwritten.
-	 * @param spriteUrl {string} The url to a spritesheet for the element.
-	 * @param x {int} The x coordinate.
-	 * @param y {int} The y coordinate.
-	 * @param w {int} The element's width.
-	 * @param h {int} The element's height.
-	 * @param sX {int} [optional] The default sprite column
-	 * @param sY {int} [optional] The default sprite row
+	 * New Element
+	 * @param elementName
+	 * @param spriteName
+	 * @param x
+	 * @param y
+	 * @param z
 	 */
-    function newElement(elementName, spriteUrl, x, y, z, w, h, sX, sY) {
+    function newElement(elementName, spriteName, x, y, z) {
 		
 		if(elementName !== 'all') {
-			var element = {
-				"name": elementName,
-				"spriteSheet": engine.spriteSheet.get(spriteUrl),
-				"x": x,
-				"y": y,
-				"z": z,
-				"width": w,
-				"height": h,
-				"spritePos": [sX || 0, sY || 0]
-			};
 
-			//save the element
-			elements[elementName] = element;
+			var spriteSheet = engine.spriteSheet.get(spriteName);
 
+			if(spriteSheet) {
 
-			return element;
+				var element = {
+					"name": elementName,
+					"spriteSheet": spriteSheet,
+					"x": x,
+					"y": y,
+					"z": z,
+					"width": spriteSheet.spriteWidth,
+					"height": spriteSheet.spriteHeight,
+					"spritePos": [0, 0]
+				};
+
+				//save the element
+				elements[elementName] = element;
+
+				return element;
+			} else {
+				throw new ReferenceError('Spritesheet "' + spriteName + '" does not exist. Cannot create element "' + elementName + '"');
+			}
 		}
 
 		return false;
@@ -40,7 +44,7 @@ RedLocomotive("elements", function(options, engine) {
 
 	/**
 	 * Get Element or Elements
-	 * @param elementName {string} The name of the string
+	 * @param elementName
 	 */
 	function getElement(elementName) {
 
@@ -59,7 +63,6 @@ RedLocomotive("elements", function(options, engine) {
 	 */
 	function removeElement(elementName) {
 
-        //if the element is passed instead of its name
 		if(elementName.name){
 			elementName = elementName.name;
 		}
@@ -78,13 +81,33 @@ RedLocomotive("elements", function(options, engine) {
 	 * @param degree
 	 * @param distance
 	 */
-	function move(element, degree, distance) {
+	function move(element, degree, distance, preventSlide) {
+
+		preventSlide = preventSlide || false;
 
 		var newPos = engine.coords(degree, distance);
 
 		//find the x and y distance via sine and cosine
 		element.x += newPos.x;
 		element.y += newPos.y;
+
+		if(engine.collisions.check(element)){
+
+			element.x -= newPos.x;
+			element.y -= newPos.y;
+
+			//if(preventSlide) {
+				return false;
+			//}
+
+			//if(!move(element, degree + 45, distance, true)) {
+				//if(!move(element, degree - 45, distance, true)) {
+					//return false;
+				//}
+			//}
+		}
+
+		return true;
 	}
 
 	function keepIn(element, viewport, marginX, marginY) {
@@ -129,17 +152,17 @@ RedLocomotive("elements", function(options, engine) {
 
                 //if element height is greater than viewport height
                 if(marginX === -1 || elementLimits.bottom - elementLimits.top > viewportLimits.bottom - viewportLimits.top){
-                    
+
                     viewport.x += elementLimits.centerX - viewportLimits.centerX;
 
                 } else {
 
                     //scroll Y on limits
-                    if (viewportLimits.top > elementLimits.top) {
-                        //viewport.y = elementLimits.top;
+                    if (elementLimits.top < viewportLimits.top) {
+                        viewport.y = elementLimits.top;
                     }
-                    if (viewportLimits.bottom < elementLimits.bottom) {
-                        viewport.y = elementLimits.bottom
+                    if (elementLimits.bottom > viewportLimits.bottom) {
+                        viewport.y = elementLimits.bottom - (viewportLimits.bottom - viewportLimits.top);
                     }
                 }
 
@@ -151,11 +174,11 @@ RedLocomotive("elements", function(options, engine) {
                 } else {
 
                     //scroll X on limits
-                    if (viewportLimits.left > elementLimits.left) {
-                        viewport.x = elementLimits.left
+                    if (elementLimits.left < viewportLimits.left) {
+                        viewport.x = elementLimits.left;
                     }
-                    if (viewportLimits.right < elementLimits.right) {
-                        viewport.x = elementLimits.right
+                    if (elementLimits.right > viewportLimits.right) {
+                        viewport.x = elementLimits.right - (viewportLimits.right - viewportLimits.left);
                     }
                 }
 

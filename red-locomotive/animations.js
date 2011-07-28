@@ -1,4 +1,4 @@
-RedLocomotive('animations', function (options, engine) {
+RedLocomotive('animations', function(engine, options) {
 
 	/**
 	 * Move any object that contains X and Y coordinates
@@ -30,6 +30,17 @@ RedLocomotive('animations', function (options, engine) {
 				element.y += travelY;
 
 				counter -= 1;
+
+				if(engine.collisions.check(element)) {
+					
+					coords.x += travelX;
+					coords.y += travelY;
+
+					element.x -= travelX;
+					element.y -= travelY;
+
+					counter = 0;
+				}
 
 				if(!counter) {
 
