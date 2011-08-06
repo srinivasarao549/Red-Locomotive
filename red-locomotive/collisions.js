@@ -5,17 +5,11 @@ RedLocomotive('collisions', function(engine, options) {
         context = canvas[0].getContext('2d');
 
 
-	function bindElements(element, obstacles, dualPixelCollisionCheck) {
-
-		dualPixelCollisionCheck = dualPixelCollisionCheck || false;
+	function bindElements(element, obstacles, elementSpriteCol, elementSpriteRow) {
 
 		//if a single element is given wrap it so it can be processed as a group.
 		if(typeof obstacles === 'string' || typeof obstacles.name === 'string') {
 			obstacles = [obstacles];
-		}
-
-		if(typeof element === "string") {
-			element = engine.element.get(element);
 		}
 
 		//replace element name references with their corresponding element
@@ -30,8 +24,10 @@ RedLocomotive('collisions', function(engine, options) {
 			collisions[element.name] = {
 				"name": element.name,
 				"element": element,
+				"elementSpriteCol": elementSpriteCol,
+				"elementSpriteRow": elementSpriteRow,
 				"obstacles": obstacles,
-				"dualPixelCollisionCheck": dualPixelCollisionCheck
+				"last": false
 			};
 
 		//if the collision data already exists merge in the new elements
@@ -41,11 +37,7 @@ RedLocomotive('collisions', function(engine, options) {
 
 	}
 
-	function collisionCheck(element) {
-
-		if(typeof element === "string") {
-			element = engine.element.get(element);
-		}
+	function collisionCheck(element, posX, posY) {
 		
 		if(!collisions[element.name]) {
 			return false;
@@ -60,7 +52,9 @@ RedLocomotive('collisions', function(engine, options) {
 			oY,
 			pixelData,
 			p,
-			pA;
+			pA,
+			x = posX || element.x,
+			y = posY || element.y;
 
 		//prepare the canvas
 		canvas[0].width = element.width;
@@ -79,29 +73,26 @@ RedLocomotive('collisions', function(engine, options) {
 
 				//check the y
 				if (
-					(element.x < obstacle.x + obstacle.width && element.x + element.width > obstacle.x) &&
-					(element.y < obstacle.y + obstacle.height && element.y + element.height > obstacle.y)
+					(x < obstacle.x + obstacle.width && x + element.width > obstacle.x) &&
+					(y < obstacle.y + obstacle.height && y + element.height > obstacle.y)
 				) {
 
-					oX = obstacle.x - element.x;
-					oY = obstacle.y - element.y;
+					oX = obstacle.x - x;
+					oY = obstacle.y - y;
 
 					engine.canvas.applyElement(obstacle, context, oX, oY);
 
-					if(collisions[element.name].dualPixelCollisionCheck) {
+					if(collisions[element.name].elementSpriteCol && collisions[element.name].elementSpriteRow) {
 						context.globalCompositeOperation = 'source-in';
-						engine.canvas.applyElement(element, context, 0, 0);
+						engine.canvas.applyElement(element, context, 0, 0, elementSpriteCol, elementSpriteRow);
 					}
 
-					//context.scale(0.16, 0.16);
 					pixelData = context.getImageData(0, 0, element.width, element.height).data;
-					//context.clearRect(0, 0, element.width, element.height);
 
 					for (p = 0; p < pixelData.length; p += 4) {
 						pA = pixelData[p + 3];
 						if(pA === 255) {
 							if(!result) { result = [] }
-							console.log(obstacle.name);
 							result.push(obstacle);
 							break;
 						}
@@ -110,13 +101,22 @@ RedLocomotive('collisions', function(engine, options) {
 			}
 		}
 
+		collisions[element.name].last = result;
 		return result;
-	};
+	}
+
+	function getLastCollision(element) {
+		if(collisions[element.name]) {
+			return collisions[element.name].last;
+		}
+		return false;
+	}
 
 	return {
 		"collisions": {
 			"bindElements": bindElements,
-			"check": collisionCheck
+			"check": collisionCheck,
+			"getLastCollision": getLastCollision
 		}
 	}
 

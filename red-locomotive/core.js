@@ -1,9 +1,7 @@
 RedLocomotive('core', function(engine, options) {
-	"use strict"
 
 	//create configuration
 	var config = jQuery.extend({
-		"fps": 30,
 		"showFPS": false,
 		"pauseOnBlur": true
 	}, options);
@@ -23,41 +21,33 @@ RedLocomotive('core', function(engine, options) {
 		realFps = '?',
 		viewports = {},
 		timers = {},
+		events = {},
 		fpsElement,
 		tanMap = {},
 		sinMap = {},
 		cosMap = {},
 		atanMap = {},
 		asinMap = {},
-		acosMap = {},
-		frameSkipSampling = 0,
-		frameSkip = 0,
-		frameSkipCounter = 0;
+		acosMap = {};
 
 	//core loop
-	setInterval(function () {
+	(function coreLoop() {
 
 		//update the frame counter
 		frameCount += 1;
 
 		//stop the loop if the system is inactive
-		if (!active) { return true; }
+		if (!active) { requestAnimFrame(coreLoop); return; }
 
-		//draw
-		if(frameSkipCounter < frameSkip) {
-			frameSkipCounter += 1;
-		} else {
-			frameSkipCounter = 0;
-			draw();
-		}
-
-		//run timers
+		//draw than advance
+		draw();
 		clock();
 
 		//call the core loop hook
-		engine.hook('core-loop');
+		newEvent('coreLoop');
 
-	}, Math.round(1000 / config.fps));
+		requestAnimFrame(coreLoop);
+	})();
 
 	//core secondary loop
 	setInterval(function () {
@@ -71,69 +61,46 @@ RedLocomotive('core', function(engine, options) {
 		if (!active) { return true; }
 
 		//call the second loop hook
-		engine.hook('core-sec-loop');
-
-		//check if a frame skip is necessary
-		/*if (realFps < config.fps - 5) {
-			if (frameSkipSampling < 3) {
-				frameSkipSampling += 1;
-			} else {
-				frameSkipSampling = 0;
-				if (frameSkip < 10) {
-					frameSkip += 1;
-				}
-			}
-		}
-		
-		//reduce frame skip if performance improves
-		if (realFps > config.fps - 1) {
-			if (frameSkipSampling > 0) {
-				frameSkipSampling -= 1;
-			} else {
-				if (frameSkip > 0) {
-					frameSkip -= 1;
-				}
-			}
-		}*/
+		newEvent('coreSecLoop');
 
 	}, 1000);
 
 	//events
-	(function events() {
+	(function eventsHooks() {
 		var depressedKeyCodes = [];
 
 		//mouse position
 		jQuery(document).mousemove(function (e) {
-			mousePos = [e.pageX, e.pageY];
-			engine.hook('mousemove', e);
+			mousePos = [e.pageX , e.pageY];
+			newEvent('mousemove', e);
 		});
 		//mouse down
 		jQuery(document).mousedown(function (e) {
 			mousedown = [true, e.pageX, e.pageY];
-			engine.hook('mousedown', e);
+			newEvent('mousedown', e);
 		});
 		//mouse up
 		jQuery(document).mouseup(function (e) {
 			mousedown = [false, e.pageX, e.pageY];
-			engine.hook('mouseup', e);
+			newEvent('mouseup', e);
 		});
 		//window focus
 		jQuery(window).focus(function (e) {
 			if (config.pauseOnBlur) {
 				active = true;
 			}
-			engine.hook('active', e);
+			newEvent('focus', e);
 		});
 		//window blur
 		jQuery(window).blur(function (e) {
 			if (config.pauseOnBlur) {
 				active = false;
 			}
-			engine.hook('inactive', e);
+			newEvent('blur', e);
 		});
 
 		jQuery(window).keydown(function(e) {
-			engine.hook('keydown', e);
+			newEvent('keydown', e);
 			if (e.keyCode === 38 && !depressedKeyCodes[38]) {
 				keyboard.axisCode += 1;
 				depressedKeyCodes[38] = true;
@@ -165,7 +132,7 @@ RedLocomotive('core', function(engine, options) {
 		});
 
 		jQuery(window).keyup(function(e) {
-			engine.hook('keyup', e);
+			newEvent('keyup', e);
 			if (e.keyCode === 38) {
 				keyboard.axisCode -= 1;
 				depressedKeyCodes[38] = false;
@@ -250,7 +217,7 @@ RedLocomotive('core', function(engine, options) {
 	}
 
 	/**
-	 * Returns the end coordinates of a vector.
+	 * Returns the end coordinates of a vector starting at 0, 0.
 	 * @param degree
 	 * @param distance
 	 */
@@ -385,6 +352,73 @@ RedLocomotive('core', function(engine, options) {
 		return newTimer('interval', frames, callback, startNow);
 	}
 
+	/**
+	 * newEvent - Executes a set of action by newEvent name.
+	 * @param eventName {string} The event name.
+	 * @param data {object} [optional] Any data object to be passed to the actions on execution.
+	 */
+	function newEvent(eventName, data) {
+
+		/**
+		 * Removes the event
+		 */
+		function remove() {
+			if (events[eventName]) {
+				delete events[eventName];
+			}
+		}
+
+		if (events[eventName]) {
+			for (var actionId in events[eventName]) {
+				if (events[eventName].hasOwnProperty(actionId) && typeof events[eventName][actionId] === "function") {
+					events[eventName][actionId](data);
+				}
+			}
+		}
+
+		return {
+			"clear": remove
+		}
+	}
+
+	/**
+	 * action - Registers a callback to be fired on the execution of a an event.
+	 * @param eventName {string} Name of the event to be paired with.
+	 * @param callback {function} Callback to be executed on execution of the defined event.
+	 */
+	function newAction(eventName, callback) {
+		var actionId;
+
+		/**
+		 * Removes the action
+		 */
+		function remove() {
+			if (events[eventName][actionId]) {
+				delete events[eventName][actionId];
+			}
+		}
+
+		if (typeof callback === "function") {
+
+			//generate an action id
+			actionId = idGen();
+
+			//If the event has not been defined yet, define it.
+			if (!events[eventName]) {
+				events[eventName] = {};
+			}
+
+			//define the action
+			events[eventName][actionId] = callback;
+
+			return {
+				"clear": remove
+			}
+		}
+
+		return false;
+	}
+
 	function newTimer(type, frames, callback, startNow) {
 		var id,
 			counter;
@@ -440,9 +474,9 @@ RedLocomotive('core', function(engine, options) {
 	 */
 	function fps() {
 		if (!fpsElement) {
-			fpsElement = engine.text.create('FPS ELEMENT', 'FPS: ' + realFps + ' FS: ' + frameSkip, 16, 0, 16);
+			fpsElement = engine.text.create('FPS ELEMENT', 'FPS: ' + realFps, 16, 0, 16);
 		} else {
-			fpsElement.text = 'FPS: ' + realFps + ' FS: ' + frameSkip;
+			fpsElement.text = 'FPS: ' + realFps;
 		}
 	}
 
@@ -463,31 +497,47 @@ RedLocomotive('core', function(engine, options) {
 		var canvas = jQuery(selector),
 			context = canvas[0].getContext('2d');
 
-		if (!width && !height) {
-			canvas[0].width = canvas.width();
-			canvas[0].height = canvas.height();
-		} else {
-			if (width) {
-				canvas[0].width = width;
-			}
-			if (height) {
-				canvas[0].height = height;
-			}
-		}
-
 		if (viewportName && canvas[0].tagName === "CANVAS") {
-			viewports[viewportName] = {
+
+			canvas[0].width = width || 800;
+			canvas[0].height = height || 600;
+
+			var viewport = {
 				"node": canvas,
 				"context": context,
 				"x": 0,
-				"y": 0
+				"y": 0,
+				"width": canvas[0].width,
+				"height": canvas[0].height,
+				"cursor": {
+					"x": 0,
+					"y": 0
+				}
 			};
+			viewports[viewportName] = viewport;
+
+			canvas.mousemove(function (e) {
+
+				var realWidth = canvas.width(),
+					realHeight = canvas.height(),
+					realX = e.pageX - canvas[0].offsetLeft,
+					realY = e.pageY - canvas[0].offsetTop,
+					viewportWidth = canvas[0].width,
+					viewportHeight = canvas[0].height;
+
+				viewport.cursor.x = Math.round(realX * viewportWidth / realWidth);
+				viewport.cursor.y = Math.round(realY * viewportHeight / realHeight);
+
+			});
 		}
+
+
 
 		if (!primaryViewport) {
 			primaryViewport = viewports[viewportName];
 		}
 
+		newEvent('createViewport', viewports[viewportName]);
 		return viewports[viewportName];
 	}
 
@@ -507,6 +557,7 @@ RedLocomotive('core', function(engine, options) {
 	 */
 	function removeViewport(viewportName) {
 		if (viewports[viewportName]) {
+			newEvent('removeViewport', viewports[viewportName]);
 			delete viewports[viewportName];
 			return true;
 		}
@@ -517,13 +568,13 @@ RedLocomotive('core', function(engine, options) {
 		return (
 			//x is in left
 			(x < viewport.x) &&
-				//x is in right
-				(x > viewport.x + viewport.node[0].width) &&
-				//y is in top
-				(y < viewport.y) &&
-				//y is in bottom
-				(y > viewport.y + viewport.node[0].height)
-			);
+			//x is in right
+			(x > viewport.x + viewport.node[0].width) &&
+			//y is in top
+			(y < viewport.y) &&
+			//y is in bottom
+			(y > viewport.y + viewport.node[0].height)
+		);
 	}
 
 	/**
@@ -549,6 +600,12 @@ RedLocomotive('core', function(engine, options) {
 
 				//draw elements
 				drawElements(viewport);
+
+				viewport.context.strokeStyle = '#f00';
+				viewport.context.fillStyle = 'transparent';
+				viewport.context.lineWidth = 1;
+				viewport.context.lineCap = 'square';
+				viewport.context.strokeRect(viewport.cursor.x - 1, viewport.cursor.y - 1, 3, 3);
 
 				//draw text elements
 				drawTextElements(viewport);
@@ -602,6 +659,8 @@ RedLocomotive('core', function(engine, options) {
 			}
 		}
 
+		newEvent('draw', stack);
+
 		//draw the new content
 		for (var level in stack) {
 			if (stack.hasOwnProperty(level)) {
@@ -621,14 +680,21 @@ RedLocomotive('core', function(engine, options) {
 		}
 	}
 
-	function drawElement(element, context, dX, dY) {
+	function drawElement(element, context, dX, dY, cPC, cPR) {
+
+		var cP;
+
+		if (cPC && cPR) {
+			cP = [cPC, cPR];
+		} else {
+			cP = element.spritePos;
+		}
 
 		//abstract some data
 		var image = element.spriteSheet.image,
 			sW = element.spriteSheet.spriteWidth,
 			sH = element.spriteSheet.spriteHeight,
 
-			cP = element.spritePos,
 			sX = Math.floor(cP[0] * sW),
 			sY = Math.floor(cP[1] * sH),
 
@@ -679,10 +745,10 @@ RedLocomotive('core', function(engine, options) {
 					fontString = size + 'px ' + font;
 
 					viewport.context.font = fontString;
+					viewport.context.fillStyle = '#000';
+					viewport.context.strokeStyle = '#000';
 					viewport.context.fillText(text, x, y, w);
-
 				}
-
 			}
 		}
 	}
@@ -704,10 +770,12 @@ RedLocomotive('core', function(engine, options) {
 	}
 
 	function pause() {
+		newEvent('pause');
 		active = false;
 	}
 
 	function resume() {
+		newEvent('resume');
 		active = true;
 	}
 
@@ -733,6 +801,8 @@ RedLocomotive('core', function(engine, options) {
 		"coords": coords,
 		"every": every,
 		"after": after,
+		"event": newEvent,
+		"when": newAction,
 		"random": random,
 		"idGen": idGen
 	}

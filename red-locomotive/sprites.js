@@ -15,7 +15,7 @@ RedLocomotive('sprites', function(engine, options) {
      */
     function newSpriteSheet(name, url, w, h, skipPixelMap, callback) {
 
-		var x = 0;
+		var x = 0, canvas;
 
 		function exec() {
 			if(x < name.length - 1) {
@@ -32,11 +32,15 @@ RedLocomotive('sprites', function(engine, options) {
                 newSpriteSheet(name[i].name, name[i].url, name[i].spriteWidth, name[i].spriteHeight, name[i].skipPixelMap, exec);
             }
         } else {
+
+	        canvas = jQuery('<canvas></canvas>');
 			sprites[name] = {
 				"spriteWidth": w,
 				"spriteHeight": h,
 				"imageData": [],
 				"skipPixelMap": skipPixelMap,
+				"canvas": canvas,
+				"context": canvas[0].getContext('2d'),
 				"image": false
 			};
 			updateSpriteSheet(name, url, callback);
@@ -81,26 +85,24 @@ RedLocomotive('sprites', function(engine, options) {
         //create an image
         loadImage(url, function (image) {
 
-			//save the image
-			spriteSheet.image = image;
+	        //add the image to the spriteSheet
+	        spriteSheet.image = image;
+
+			//draw the image to the spriteSheet canvas
+	        spriteSheet.canvas[0].width = image[0].width;
+	        spriteSheet.canvas[0].height = image[0].height;
+			spriteSheet.context.drawImage(image[0], 0, 0, image[0].width, image[0].height);
 
             //get the image data
             if (!spriteSheet.skipPixelMap) {
 
-                //collect vars
-                var imageWidth = image[0].width,
-                    imageHeight = image[0].height,
-                    columns = Math.floor(imageWidth / spriteSheet.spriteWidth),
-                    rows = Math.floor(imageHeight / spriteSheet.spriteHeight),
+                //collect vars for the pixel data loop
+                var canvasWidth = spriteSheet.canvas[0].width,
+                    canvasHeight = spriteSheet.canvas[0].height,
+                    columns = Math.floor(canvasWidth / spriteSheet.spriteWidth),
+                    rows = Math.floor(canvasHeight / spriteSheet.spriteHeight),
                     pixelData = spriteSheet.imageData,
                     spritePixelData = false;
-					
-				//size the canvas to the image
-				canvas[0].width = imageWidth;
-				canvas[0].height = imageHeight;
-
-				//blit the image on to the canvas
-				canvasContext.drawImage(image[0], 0, 0, imageWidth, imageHeight);
 
 				//loop each sprite column
 				for (var c = 0; c < columns; c += 1) {
@@ -116,13 +118,13 @@ RedLocomotive('sprites', function(engine, options) {
 
 						//get the pixel data
 						// top left coords, bottom right coords
-						spritePixelData = canvasContext.getImageData(c * spriteSheet.spriteWidth, r * spriteSheet.spriteHeight, spriteSheet.spriteWidth, spriteSheet.spriteHeight).data;
+						spritePixelData = spriteSheet.context.getImageData(c * spriteSheet.spriteWidth, r * spriteSheet.spriteHeight, spriteSheet.spriteWidth, spriteSheet.spriteHeight).data;
 
 						//extract each pixel
 						for (var prgb = 0; prgb < spritePixelData.length; prgb += 4) {
 							var p = prgb / 4,
 								pr = Math.floor(p / spriteSheet.spriteWidth),
-								pc = p - Math.floor(imageWidth * pr);
+								pc = p - Math.floor(canvasWidth * pr);
 
 							//if the pixel data row does not exist then create it
 							if (!pixelData[c][r][pc]) {	pixelData[c][r][pc] = []; }

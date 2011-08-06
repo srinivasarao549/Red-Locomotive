@@ -11,32 +11,29 @@ RedLocomotive("elements", function(engine, options) {
 	 * @param y
 	 * @param z
 	 */
-    function newElement(elementName, spriteName, x, y, z) {
+    function newElement(elementName, spriteSheet, x, y, z) {
 		
 		if(elementName !== 'all') {
 
-			var spriteSheet = engine.spriteSheet.get(spriteName);
-
-			if(spriteSheet) {
-
-				var element = {
-					"name": elementName,
-					"spriteSheet": spriteSheet,
-					"x": x,
-					"y": y,
-					"z": z,
-					"width": spriteSheet.spriteWidth,
-					"height": spriteSheet.spriteHeight,
-					"spritePos": [0, 0]
-				};
-
-				//save the element
-				elements[elementName] = element;
-
-				return element;
-			} else {
-				throw new ReferenceError('Spritesheet "' + spriteName + '" does not exist. Cannot create element "' + elementName + '"');
+			if(spriteSheet && typeof spriteSheet === 'string') {
+				spriteSheet = engine.spriteSheet.get(spriteSheet);
 			}
+
+			var element = {
+				"name": elementName,
+				"spriteSheet": spriteSheet,
+				"x": x,
+				"y": y,
+				"z": z,
+				"width": spriteSheet.spriteWidth,
+				"height": spriteSheet.spriteHeight,
+				"spritePos": [0, 0]
+			};
+
+			//save the element
+			elements[elementName] = element;
+
+			return element;
 		}
 
 		return false;
@@ -81,43 +78,29 @@ RedLocomotive("elements", function(engine, options) {
 	 * @param degree
 	 * @param distance
 	 */
-	function move(element, degree, distance, preventSlide) {
+	function move(element, degree, distance) {
 
-		preventSlide = preventSlide || false;
-
-		var newPos = engine.coords(degree, distance);
+		var newPos = engine.coords(degree, distance),
+			collision;
 
 		//find the x and y distance via sine and cosine
-		element.x += newPos.x;
-		element.y += newPos.y;
 
-		if(engine.collisions.check(element)){
+		collision = engine.collisions.check(element, element.x + newPos.x, element.y + newPos.y);
 
-			element.x -= newPos.x;
-			element.y -= newPos.y;
-
-			//if(preventSlide) {
-				return false;
-			//}
-
-			//if(!move(element, degree + 45, distance, true)) {
-				//if(!move(element, degree - 45, distance, true)) {
-					//return false;
-				//}
-			//}
+		if(collision){
+			return false;
+		} else {
+			element.x += newPos.x;
+			element.y += newPos.y;
+			engine.event('move-' + element.name);
+			return true;
 		}
-
-		return true;
 	}
 
 	function keepIn(element, viewport, marginX, marginY) {
 
         marginX = marginX || 0;
         marginY = marginY || marginX;
-
-		function clear() {
-			bindingTimer.clear();
-		}
 
 		if(
 			typeof element.x !== "undefined" ||
@@ -130,16 +113,16 @@ RedLocomotive("elements", function(engine, options) {
 
 		) {
 
-			var bindingTimer = engine.every(function(){
+			var bindingAction = engine.when('move-' + element.name, function(){
 
                 //figure out limits
                 var viewportLimits = {
                         "top": viewport.y,
                         "bottom": viewport.y + viewport.node[0].height,
                         "left": viewport.x,
-                        "right": viewport.x + viewport.node[0].width,
-                        "centerX": (viewport.x + (viewport.node[0].width / 2)),
-                        "centerY": (viewport.y + (viewport.node[0].height / 2))
+                        "right": viewport.x + viewport.width,
+                        "centerX": (viewport.x + (viewport.width / 2)),
+                        "centerY": (viewport.y + (viewport.height / 2))
                     },
                     elementLimits = {
                         "top": element.y - marginY,
@@ -185,7 +168,7 @@ RedLocomotive("elements", function(engine, options) {
 			});
 
 			return {
-				"clear": clear
+				"clear": bindingAction.clear
 			}
 
 		}
@@ -217,6 +200,21 @@ RedLocomotive("elements", function(engine, options) {
 		}
 
 		return false;
+
+		/*elementName = 'TEXT-' + elementName;
+
+		var canvas = jQuery('<canvas></canvas>'),
+			context = canvas.getContext('2d'),
+			textSprite = {
+			"spriteName": 'TEXT-' + elementName,
+			"spriteWidth": 0,
+			"spriteHeight": 0,
+			"canvas": canvas,
+			"context": context
+		}
+
+		var element = newElement(elementName, textSprite, x, y, z);*/
+
 	}
 
 	/**
