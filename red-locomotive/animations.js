@@ -7,42 +7,34 @@ RedLocomotive('animations', function(engine, options) {
 	 * @param distance
 	 * @param frames
 	 */
-	function move(element, degree, distance, frames, callback) {
+	function move(element, endX, endY, frames, callback) {
+
+		function setCallback(newCallback) {
+			callback = newCallback;
+		}
 
 		//if the element has x and y values, and they are int values.
-		if (element.x && element.y) {
+		if (typeof element.x === 'number' && typeof element.y === 'number') {
 
-			var counter = frames || 1,
-				moveTimer,
-                travelX,
-                travelY,
-                coords = engine.coords(degree, distance);
+			var moveTimer,
+				counter = frames || 1;
+
 
 			moveTimer = engine.every(function(){
 
-				travelX = Math.round(coords.x / counter);
-				travelY = Math.round(coords.y / counter);
+				//calculate the distance
+				var distanceX = endX - element.x,
+					distanceY = endY - element.y;
 
-                coords.x -= travelX;
-                coords.y -= travelY;
-
-				element.x += travelX;
-				element.y += travelY;
+				element.x += Math.round((distanceX / counter) * 100) / 100;
+				element.y += Math.round((distanceY / counter) * 100) / 100;
 
 				counter -= 1;
 
-				if(engine.collisions.check(element)) {
-					
-					coords.x += travelX;
-					coords.y += travelY;
-
-					element.x -= travelX;
-					element.y -= travelY;
-
-					counter = 0;
-				}
-
 				if(!counter) {
+
+					element.x = endX;
+					element.y = endY;
 
 					//kill the timer
 					moveTimer.clear();
@@ -54,7 +46,8 @@ RedLocomotive('animations', function(engine, options) {
 			});
 
 			return {
-				"clear": moveTimer.clear
+				"clear": moveTimer.clear,
+				"setCallback": setCallback
 			}
 		}
 		return false;
@@ -66,6 +59,10 @@ RedLocomotive('animations', function(engine, options) {
 	 * @param sequence
 	 */
 	function sequence(element, sequence, frames, callback) {
+
+		function setCallback(newCallback) {
+			callback = newCallback;
+		}
 		
 		var frame = 0, useloop = false;
 
@@ -103,7 +100,8 @@ RedLocomotive('animations', function(engine, options) {
 
 		return {
 			"loop": loop,
-			"clear": clear
+			"clear": clear,
+			"setCallback": setCallback
 		}
 	}
 

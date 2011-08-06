@@ -114,7 +114,8 @@
 				"elements",
 				"sprites",
 				"animations",
-                "collisions"
+                "collisions",
+				"paths"
 			],
 			i = 1;
 

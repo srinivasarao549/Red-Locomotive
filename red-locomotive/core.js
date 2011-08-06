@@ -184,7 +184,7 @@ RedLocomotive('core', function(engine, options) {
 		yDistance = yDistance < 0 ? -yDistance : yDistance;
 
 		//use pythagoras theorem to find the distance.
-		return Math.sqrt(Math.pow(yDistance, 2) + Math.pow(xDistance, 2));
+		return Math.round(Math.sqrt(Math.pow(yDistance, 2) + Math.pow(xDistance, 2)) * 100) / 100;
 
 	}
 
@@ -195,25 +195,31 @@ RedLocomotive('core', function(engine, options) {
 	 */
 	function angle(xDistance, yDistance) {
 
+		if(xDistance === 0 && yDistance === 0) {
+			return 0;
+		}
+
 		var quad;
 
-		if (xDistance < 0) {
-			if (yDistance < 0) {
-				quad = 3;
-			} else {
-				quad = 0;
-			}
-		}
-		if (yDistance < 0) {
-			if (xDistance < 0) {
-				quad = 2;
-			} else {
-				quad = 1;
-			}
+		if (xDistance >= 0 && yDistance < 0) {
+			quad = 0;
+		} else if(xDistance > 0 && yDistance >= 0) {
+			quad = 1;
+		} else if(xDistance <= 0 && yDistance > 0) {
+			quad = 2;
+		} else if(xDistance < 0 && yDistance <= 0) {
+			quad = 3;
 		}
 
+		xDistance = xDistance < 0 ? -xDistance : xDistance;
+		yDistance = yDistance < 0 ? -yDistance : yDistance;
+
 		//use arc tangent to find the angle of ascent.
-		return Math.round(engine.atan(yDistance / xDistance)) + (90 * quad);
+		return (Math.round((engine.atan(yDistance / xDistance)) * 100) / 100) + (90 * quad);
+	}
+
+	function vector(xDistance, yDistance) {
+		return [angle(xDistance, yDistance), distance(xDistance, yDistance)];
 	}
 
 	/**
@@ -225,17 +231,15 @@ RedLocomotive('core', function(engine, options) {
 
 		//throw an error if greater than 360 or less than 0
 		if (degree >= 360) {
-			degree /= Math.floor(degree / 360);
+			degree /= degree / 360;
 		} else if (degree < 0) {
-			degree *= Math.floor(-degree / 360);
+			degree *= -degree / 360;
 		}
 
 		var quad = Math.floor(degree / 90);
 		degree -= 90 * quad;
 
 		var x, y;
-
-		distance = Math.round(distance);
 
 		switch (quad) {
 			case 0:
@@ -256,27 +260,10 @@ RedLocomotive('core', function(engine, options) {
 				break;
 		}
 
+		x = Math.round(x * 10) / 10;
+		y = Math.round(y * 10) / 10;
+
 		return {"x": x, "y": y};
-	}
-
-	function trigGen(callback) {
-		var angle = 0;
-		var trigGenTimer = engine.every(function () {
-
-			atan(tan(angle));
-			asin(sin(angle));
-			acos(cos(angle));
-
-			if (angle < 90) {
-				angle += 1;
-			} else {
-				trigGenTimer.clear();
-				if (typeof callback === "function") {
-					callback();
-				}
-			}
-
-		});
 	}
 
 	function tan(input) {
@@ -302,21 +289,21 @@ RedLocomotive('core', function(engine, options) {
 
 	function atan(input) {
 		if (!atanMap[input]) {
-			atanMap[input] = Math.atan(input * Math.PI / 180);
+			atanMap[input] = Math.atan(input) / Math.PI * 180;
 		}
 		return atanMap[input];
 	}
 
 	function asin(input) {
 		if (!asinMap[input]) {
-			asinMap[input] = Math.asin(input * Math.PI / 180);
+			asinMap[input] = Math.asin(input) / Math.PI * 180;
 		}
 		return asinMap[input];
 	}
 
 	function acos(input) {
 		if (!acosMap[input]) {
-			acosMap[input] = Math.acos(input * Math.PI / 180);
+			acosMap[input] = Math.acos(input) / Math.PI * 180;
 		}
 		return acosMap[input];
 	}
@@ -327,7 +314,7 @@ RedLocomotive('core', function(engine, options) {
 			if (timers.hasOwnProperty(id)) {
 				timer = timers[id];
 
-				if (timer.counter < timer.frames - 1) {
+				if (timer.counter < timer.frames) {
 					timer.counter += 1;
 				} else {
 
@@ -449,7 +436,7 @@ RedLocomotive('core', function(engine, options) {
 			if (startNow) {
 				counter = frames;
 			} else {
-				counter = 0;
+				counter = 1;
 			}
 
 			timers[id] = {
@@ -691,7 +678,7 @@ RedLocomotive('core', function(engine, options) {
 		}
 
 		//abstract some data
-		var image = element.spriteSheet.image,
+		var canvas = element.spriteSheet.canvas,
 			sW = element.spriteSheet.spriteWidth,
 			sH = element.spriteSheet.spriteHeight,
 
@@ -701,8 +688,17 @@ RedLocomotive('core', function(engine, options) {
 			dW = element.spriteSheet.spriteWidth,
 			dH = element.spriteSheet.spriteHeight;
 
-		//draw the sprite on to the
-		context.drawImage(image[0], sX, sY, sW, sH, dX, dY, dW, dH);
+		if(
+			(sX < 0) ||
+			(sY < 0) ||
+			(sX + sW > canvas[0].width) ||
+			(sY + sH > canvas[0].height)
+		) {
+			throw new RangeError('Sprite at [' + cP[0] + ', ' + cP[1] + '] is out of range on element "' + element.name + '"');
+		} else {
+			//draw the sprite on to the
+			context.drawImage(canvas[0], sX, sY, sW, sH, dX, dY, dW, dH);
+		}
 
 	}
 
@@ -798,13 +794,20 @@ RedLocomotive('core', function(engine, options) {
 		},
 		"distance": distance,
 		"angle": angle,
+		"vector": vector,
 		"coords": coords,
 		"every": every,
 		"after": after,
 		"event": newEvent,
 		"when": newAction,
 		"random": random,
-		"idGen": idGen
+		"idGen": idGen,
+		"tan": tan,
+		"atan": atan,
+		"sin": sin,
+		"asin": asin,
+		"cos": cos,
+		"acos": acos
 	}
 
 });

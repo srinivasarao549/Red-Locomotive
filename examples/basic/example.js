@@ -1,12 +1,9 @@
 //Start Red Locomotive
 RedLocomotive({
 
-		
 	//Configuration
 	"baseUrl": "../../",
-	"fps": 30,
 	"showFPS": true
-
 
 }, function(engine) {
 
@@ -30,7 +27,7 @@ RedLocomotive({
 
 
 		//create a test elements
-		var testElement = engine.element.create('test', 'test', 300, 125, 100, 100),
+		var testElement = engine.element.create('test', 'test', 300, 125),
 			testTextElement = engine.text.create('test', 'Red Locomotive!', 48, -800, 100),
 			testTextElement2 = engine.text.create('test2', 'Giving your games Tractive Effort', 48, mainView.node[0].width, 300),
 			b = false;

@@ -6,7 +6,7 @@ RedLocomotive("elements", function(engine, options) {
 	/**
 	 * New Element
 	 * @param elementName
-	 * @param spriteName
+	 * @param spriteSheet
 	 * @param x
 	 * @param y
 	 * @param z
@@ -75,23 +75,20 @@ RedLocomotive("elements", function(engine, options) {
 	/**
 	 * Takes an element and a vector, then moves the element to the vector's end point
 	 * @param element
-	 * @param degree
-	 * @param distance
+	 * @param x
+	 * @param y
 	 */
-	function move(element, degree, distance) {
-
-		var newPos = engine.coords(degree, distance),
-			collision;
+	function move(element, x, y) {
 
 		//find the x and y distance via sine and cosine
 
-		collision = engine.collisions.check(element, element.x + newPos.x, element.y + newPos.y);
+		var collision = engine.collisions.check(element, x, y);
 
 		if(collision){
 			return false;
 		} else {
-			element.x += newPos.x;
-			element.y += newPos.y;
+			element.x = x;
+			element.y = y;
 			engine.event('move-' + element.name);
 			return true;
 		}

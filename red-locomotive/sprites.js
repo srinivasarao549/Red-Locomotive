@@ -62,7 +62,7 @@ RedLocomotive('sprites', function(engine, options) {
             images[url] = jQuery('<img src="' + url + '" alt="">');
 
             //on ready fire the callback
-            images[url].ready(function () {
+            images[url].load(function () {
                 callback(images[url]);
             });
 

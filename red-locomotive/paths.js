@@ -1,26 +1,71 @@
-RedLocomotive('paths', function () {
+RedLocomotive('paths', function (engine, options) {
 
-	var paths = {};
+	function followPath(element, pathArray, frames, PositioningMethod, callback) {
 
-	function newPath(callback, pathArray, speed, patrol) {
+		function clear() {
+			if(pathTimer) { pathTimer.clear(); }
+			if(moveAni) { moveAni.clear(); }
+		}
 
-		var pointer = 0, direction = 1;
+		var i = 0,
+			coords = {},
+			vector,
+			moveAni,
+			pathTimer;
 
-		function walkPath() {
-			if (pathArray[pointer]) {
-				
+		//preform the move
+		pathTimer = engine.every(function () {
+
+			switch (PositioningMethod) {
+				case 'relative':
+					coords['x'] = element.x + pathArray[i][0];
+					coords['y'] = element.y + pathArray[i][1];
+				break;
+				case 'absolute':
+					coords['x'] = pathArray[i][0];
+					coords['y'] = pathArray[i][1];
+				break;
+				case 'vectors':
+					coords = engine.coords(pathArray[i][0], pathArray[i][1]);
+					coords['x'] += element.x;
+					coords['y'] += element.y;
+				break;
 			}
-		}
 
-		if(!pathArray.length || !element.x || !element.y) {
-			return;
-		}
+			pathTimer.setFrames(frames);
+			moveAni = engine.animate.move(element, coords['x'], coords['y'], frames);
 
+
+			if (i < pathArray.length - 1) {
+				i += 1;
+			} else {
+				moveAni.setCallback(callback);
+				pathTimer.clear();
+			}
+
+		});
+
+		return {
+			"clear": clear
+		}
+	}
+
+	function patrolPath(element, pathArray, frames, PositioningMethod, linear) {
+
+		var pathTimer = followPath(element, pathArray, frames, PositioningMethod, function () {
+			pathArray = linear ? pathArray.reverse() : pathArray;
+			patrolPath(element, pathArray, frames, PositioningMethod, linear);
+		});
+
+		return {
+			"clear": pathTimer.clear
+		}
 	}
 
 	return {
 		"path": {
-			"create": newPath
+			"follow": followPath,
+			"patrol": patrolPath
 		}
 	}
 
