@@ -19,10 +19,10 @@ RedLocomotive('core', function(engine, options) {
 		primaryViewport = false,
 		frameCount = 0,
 		realFps = '?',
+		fpsElement,
 		viewports = {},
 		timers = {},
 		events = {},
-		fpsElement,
 		tanMap = {},
 		sinMap = {},
 		cosMap = {},
@@ -53,7 +53,7 @@ RedLocomotive('core', function(engine, options) {
 	setInterval(function () {
 
 		//update the fps
-		if (options.showFPS && engine.text) { fps(); }
+		if (options.showFPS && engine.text) { fpsElement(); }
 		realFps = frameCount;
 		frameCount = 0;
 
@@ -193,14 +193,45 @@ RedLocomotive('core', function(engine, options) {
 	 * @param xDistance
 	 * @param yDistance
 	 */
+
+	//TODO: Does not work! does not rotate the trangle based on quadrant
 	function angle(xDistance, yDistance) {
 
-		if(xDistance === 0 && yDistance === 0) {
+		//if the distance is along x or y return the degree without using trig
+		//
+		//if the object is stationary return 0
+		if (xDistance === 0 && yDistance === 0) {
 			return 0;
+
+		//if moving along the y axis
+		} else if(xDistance === 0) {
+
+			//return 0 for up
+			if(yDistance < 0) {
+				return 0;
+
+			//return 180 for down
+			} else {
+				return 180;
+			}
+
+		//if moving along the x axis
+		} else if (yDistance === 0) {
+
+			//return 90 for right
+			if(xDistance > 0) {
+				return 90;
+
+			//return 270 for left
+			} else {
+				return 270;
+			}
 		}
 
-		var quad;
+		//prepare some variables for the trig based method
+		var quad, decimal;
 
+		//figure out the quadrant
 		if (xDistance >= 0 && yDistance < 0) {
 			quad = 0;
 		} else if(xDistance > 0 && yDistance >= 0) {
@@ -211,11 +242,24 @@ RedLocomotive('core', function(engine, options) {
 			quad = 3;
 		}
 
+		//inverse negative axis
 		xDistance = xDistance < 0 ? -xDistance : xDistance;
 		yDistance = yDistance < 0 ? -yDistance : yDistance;
 
+		//get the decimal for atan
+		switch (quad) {
+			case 0:
+			case 2:
+				decimal = yDistance / xDistance;
+			break;
+			case 1:
+			case 3:
+				decimal = xDistance / yDistance;
+			break;
+		}
+
 		//use arc tangent to find the angle of ascent.
-		return (Math.round((engine.atan(yDistance / xDistance)) * 100) / 100) + (90 * quad);
+		return (Math.round((engine.atan(decimal)) * 100) / 100) + (90 * quad);
 	}
 
 	function vector(xDistance, yDistance) {
@@ -459,12 +503,16 @@ RedLocomotive('core', function(engine, options) {
 	/**
 	 * Draws the fps
 	 */
-	function fps() {
+	function fpsElement() {
 		if (!fpsElement) {
 			fpsElement = engine.text.create('FPS ELEMENT', 'FPS: ' + realFps, 16, 0, 16);
 		} else {
 			fpsElement.text = 'FPS: ' + realFps;
 		}
+	}
+
+	function fps() {
+		return realFps;
 	}
 
 	/**
@@ -787,7 +835,7 @@ RedLocomotive('core', function(engine, options) {
 			"create": newViewport,
 			"get": getViewport,
 			"remove": removeViewport,
-			"offsetInViewport": offsetInViewport
+			"containsPos": offsetInViewport
 		},
 		"canvas": {
 			"applyElement": drawElement

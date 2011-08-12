@@ -22,10 +22,10 @@ RedLocomotive({
 			var flashyBlock = engine.element.create(id, 'test', x + 200, y, 100, 100);
 
 			engine.every(function () {
-				engine.animate.move(flashyBlock, 270, 200, 25, function () {
-					engine.animate.move(flashyBlock, 180, 200, 25, function () {
-						engine.animate.move(flashyBlock, 90, 200, 25, function () {
-							engine.animate.move(flashyBlock, 0, 200, 25);
+				engine.animate.move(flashyBlock, 0 + x, 0 + y, 25, function () {
+					engine.animate.move(flashyBlock, 0 + x, 200 + y, 25, function () {
+						engine.animate.move(flashyBlock, 200 + x, 200 + y, 25, function () {
+							engine.animate.move(flashyBlock, 200 + x, 0 + y, 25);
 						});
 					});
 				});
