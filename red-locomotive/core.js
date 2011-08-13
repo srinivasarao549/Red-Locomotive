@@ -19,7 +19,7 @@ RedLocomotive('core', function(engine, options) {
 		frameCount = 0,
 		realFps = '?',
 		fpsElement,
-		time = 0,
+		sysTime = new Date(),
 		timers = {},
 		events = {},
 		tanMap = {},
@@ -30,10 +30,10 @@ RedLocomotive('core', function(engine, options) {
 		acosMap = {};
 
 	//core loop
-	(function coreLoop(_time) {
+	(function coreLoop(newTime) {
 
-		//save the time
-		time = _time;
+		//update the time
+		sysTime = newTime;
 
 		//update the frame counter
 		frameCount += 1;
@@ -354,37 +354,6 @@ RedLocomotive('core', function(engine, options) {
 		return acosMap[input];
 	}
 
-	function clock() {
-		var timer;
-		for (var id in timers) {
-			if (timers.hasOwnProperty(id)) {
-				timer = timers[id];
-
-				if (timer.counter < timer.frames) {
-					timer.counter += 1;
-				} else {
-
-					if (typeof timer.callback === 'function') {
-						timer.callback();
-					}
-					if (timer.type === 'timeout') {
-						delete timers[id];
-					} else if (timer.type === 'interval') {
-						timer.counter = 0;
-					}
-				}
-			}
-		}
-	}
-
-	function after(callback, frames) {
-		return newTimer('timeout', frames, callback, false);
-	}
-
-	function every(callback, frames, startNow) {
-		return newTimer('interval', frames, callback, startNow);
-	}
-
 	/**
 	 * newEvent - Executes a set of action by newEvent name.
 	 * @param eventName {string} The event name.
@@ -452,9 +421,38 @@ RedLocomotive('core', function(engine, options) {
 		return false;
 	}
 
-	function newTimer(type, frames, callback, startNow) {
+	function clock() {
+		var timer;
+		for (var id in timers) {
+			if (timers.hasOwnProperty(id)) {
+				timer = timers[id];
+
+				//check to see if the timer has expired
+				if(timer.expires < sysTime) {
+
+					//fire the callback
+					if (typeof timer.callback === 'function') {
+						timer.callback(sysTime);
+					}
+
+					//if this is a timeout then delete it
+					if (timer.type === 'timeout') {
+						delete timers[id];
+
+					//else reset the exper
+					} else if (timer.type === 'interval') {
+						timer.expires = sysTime + timer.interval;
+					}
+				}
+			}
+		}
+	}
+
+	function newTimer(type, milliseconds, callback, startNow) {
 		var id,
-			counter;
+			expires;
+
+		milliseconds = milliseconds || 0;
 
 		/**
 		 * Removes the new timer
@@ -466,12 +464,18 @@ RedLocomotive('core', function(engine, options) {
 		}
 
 		/**
-		 * Changes the frame rate
+		 * Resets the timer and optionally changes the timer's expiration
 		 * @param frames
 		 */
-		function setFrames(frames) {
-			if (timers[id] && frames) {
-				timers[id].frames = frames;
+		function reset(milliseconds) {
+			if (timers[id]) {
+				var timer = timers[id];
+
+				if(typeof milliseconds === 'number') {
+					timer.interval = milliseconds;
+				}
+
+				timer.expires = sysTime + timer.interval;
 			}
 		}
 
@@ -480,26 +484,34 @@ RedLocomotive('core', function(engine, options) {
 			id = idGen();
 
 			if (startNow) {
-				counter = frames;
+				expires = sysTime;
 			} else {
-				counter = 1;
+				expires = sysTime + milliseconds;
 			}
 
 			timers[id] = {
 				"type": type,
-				"frames": frames,
-				"counter": counter,
+				"expires": expires,
+				"interval": milliseconds,
 				"callback": callback
 			};
 
 			return {
 				"clear": remove,
-				"setFrames": setFrames
+				"reset": reset
 			}
 
 		}
 
 		return false;
+	}
+
+	function after(callback, milliseconds) {
+		return newTimer('timeout', milliseconds, callback, false);
+	}
+
+	function every(callback, milliseconds, startNow) {
+		return newTimer('interval', milliseconds, callback, startNow);
 	}
 
 	/**
@@ -526,6 +538,8 @@ RedLocomotive('core', function(engine, options) {
 			viewport,
 			height,
 			width;
+
+		newEvent('draw');
 
 		//loop through each viewport
 		for (var viewportName in viewports) {
@@ -599,8 +613,6 @@ RedLocomotive('core', function(engine, options) {
 
 			}
 		}
-
-		newEvent('draw', stack);
 
 		//draw the new content
 		for (var level in stack) {
@@ -729,6 +741,10 @@ RedLocomotive('core', function(engine, options) {
 		active = true;
 	}
 
+	function getTime() {
+		return sysTime;
+	}
+
 	//return the core api
 	return {
 		"mousePosition": getMousePos,
@@ -756,7 +772,8 @@ RedLocomotive('core', function(engine, options) {
 		"sin": sin,
 		"asin": asin,
 		"cos": cos,
-		"acos": acos
+		"acos": acos,
+		"getTime": getTime
 	}
 
 });

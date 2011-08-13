@@ -1,6 +1,6 @@
 RedLocomotive('paths', function (engine, options) {
 
-	function followPath(element, pathArray, frames, PositioningMethod, callback) {
+	function followPath(element, pathArray, milliseconds, PositioningMethod, callback) {
 
 		function clear() {
 			if(pathTimer) { pathTimer.clear(); }
@@ -32,8 +32,8 @@ RedLocomotive('paths', function (engine, options) {
 				break;
 			}
 
-			pathTimer.setFrames(frames);
-			moveAni = engine.animate.move(element, coords['x'], coords['y'], frames);
+			pathTimer.reset(milliseconds);
+			moveAni = engine.animate.move(element, coords['x'], coords['y'], milliseconds);
 
 
 			if (i < pathArray.length - 1) {
@@ -50,11 +50,11 @@ RedLocomotive('paths', function (engine, options) {
 		}
 	}
 
-	function patrolPath(element, pathArray, frames, PositioningMethod, linear) {
+	function patrolPath(element, pathArray, milliseconds, PositioningMethod, linear) {
 
-		var pathTimer = followPath(element, pathArray, frames, PositioningMethod, function () {
+		var pathTimer = followPath(element, pathArray, milliseconds, PositioningMethod, function () {
 			pathArray = linear ? pathArray.reverse() : pathArray;
-			patrolPath(element, pathArray, frames, PositioningMethod, linear);
+			patrolPath(element, pathArray, milliseconds, PositioningMethod, linear);
 		});
 
 		return {

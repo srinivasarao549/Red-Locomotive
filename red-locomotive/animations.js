@@ -5,9 +5,9 @@ RedLocomotive('animations', function(engine, options) {
 	 * @param element
 	 * @param degree
 	 * @param distance
-	 * @param frames
+	 * @param milliseconds
 	 */
-	function move(element, endX, endY, frames, callback) {
+	function move(element, endX, endY, milliseconds, callback) {
 
 		function setCallback(newCallback) {
 			callback = newCallback;
@@ -16,27 +16,37 @@ RedLocomotive('animations', function(engine, options) {
 		//if the element has x and y values, and they are int values.
 		if (typeof element.x === 'number' && typeof element.y === 'number') {
 
+			milliseconds = milliseconds || 1;
+			
 			var moveTimer,
-				counter = frames || 1;
+				startX = element.x,
+				startY = element.y,
+				distanceX = endX - startX,
+				distanceY = endY - startY,
+				startTime = engine.getTime();
 
-			moveTimer = engine.every(function(){
+			moveTimer = engine.every(function(sysTime){
 
-				//calculate the distance
-				var distanceX = endX - element.x,
-					distanceY = endY - element.y,
-					moveX = Math.round((distanceX / counter) * 100) / 100,
-					moveY = Math.round((distanceY / counter) * 100) / 100;
+				//calculate the time elapsed and the distance from the endpoint
+				var elapsedTime = sysTime - startTime || 1,
 
+					//calculate the distance travelled
+					// move = distanceLeft * sysTime / timeLeft
+					moveX = Math.floor(distanceX * elapsedTime / milliseconds),
+					moveY = Math.floor(distanceY * elapsedTime / milliseconds);
+
+				//add the moved pixels to the element's position
+				element.x = startX + moveX;
+				element.y = startY + moveY;
+
+				//calculate the element's velocity and direction
 				element.direction = engine.angle(moveX, moveY),
 				element.distance = engine.distance(moveX, moveY);
 
-				element.x += moveX;
-				element.y += moveY;
+				//if the animation is over
+				if(elapsedTime >= milliseconds) {
 
-				counter -= 1;
-
-				if(!counter) {
-
+					//force the element's end position
 					element.x = endX;
 					element.y = endY;
 
@@ -62,7 +72,7 @@ RedLocomotive('animations', function(engine, options) {
 	 * @param element
 	 * @param sequence
 	 */
-	function sequence(element, sequence, frames, callback) {
+	function sequence(element, sequence, milliseconds, callback) {
 
 		function setCallback(newCallback) {
 			callback = newCallback;
@@ -87,8 +97,10 @@ RedLocomotive('animations', function(engine, options) {
 						callback();
 					}
 				}
+
+				console.log('frame', milliseconds);
 				
-			}, frames, true);
+			}, milliseconds, true);
 		}
 
 		function loop() {
