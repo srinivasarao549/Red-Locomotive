@@ -42,6 +42,7 @@
 	 */
 	function require(moduleName, callback, inCore) {
 
+		//if a list of modules is given
 		if(typeof moduleName === 'object') {
 			var reqModules = moduleName,
 				i = 0;
@@ -62,6 +63,7 @@
 				require(moduleName, loadCounter);
 			}
 
+		//if a single module is given
 		} else {
 
 			//define the module path
@@ -84,22 +86,12 @@
 				}
 
 				if (typeof callback === "function") {
+
 					callback();
 				}
 			});
 		}
 	}
-
-	//add require and load to red loco
-	Engine = jQuery.extend(true, Engine, {
-		//strip the 'core' flag so that the end user cannot reload core modules
-		"require": function(moduleName, callback) {
-			require(moduleName, callback);
-		},
-		"loader": {
-			"loadScript": loadScript
-		}
-	});
 
 	/**
 	 * RedLocomotive - Creates and returns an engine, or takes a module and extends Red Locomotive
@@ -110,12 +102,13 @@
 	function RedLocomotive(input, callback) {
 		var coreModules = [
 				"core",
-				"audio",
+				"viewports",
 				"elements",
 				"sprites",
+				"paths",
 				"animations",
                 "collisions",
-				"paths"
+				"audio"
 			],
 			i = 1;
 
@@ -161,6 +154,17 @@
 		}
 
 	}
+
+	//add require and load to red loco
+	Engine = jQuery.extend(true, Engine, {
+		//strip the 'core' flag so that the end user cannot reload core modules
+		"require": function(moduleName, callback) {
+			require(moduleName, callback);
+		},
+		"loader": {
+			"loadScript": loadScript
+		}
+	});
 
 	//globalize Red Locomotive's constructor
 	window.RedLocomotive = RedLocomotive;

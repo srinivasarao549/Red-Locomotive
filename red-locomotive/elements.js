@@ -25,6 +25,9 @@ RedLocomotive("elements", function(engine, options) {
 				"x": x,
 				"y": y,
 				"z": z,
+				"velocity": 0,
+				"mass": 0,
+				"direction": 0,
 				"width": spriteSheet.spriteWidth,
 				"height": spriteSheet.spriteHeight,
 				"spritePos": [0, 0]
@@ -80,22 +83,31 @@ RedLocomotive("elements", function(engine, options) {
 	 */
 	function move(element, x, y) {
 
-		//find the x and y distance via sine and cosine
+		//check for a collision
+		var obstacle = engine.collisions.check(element, x, y);
 
-		var collision = engine.collisions.check(element, x, y);
+		//if an element is returned by the collision check then
+		// try to place the element as close to the blocking element
+		// as possible
+		if(!obstacle){
 
-		if(collision){
-			return false;
-		} else {
+			//apply the element position
 			element.x = x;
 			element.y = y;
+
+			//fire an event for movement
 			engine.event('move-' + element.name);
 			return true;
+
+		} else {
+			//TODO: engine.element.move should place the object as close as it can when a collision occurs
+			return false;
 		}
 	}
 
 	function keepIn(element, viewport, marginX, marginY) {
 
+		//set the default margins
         marginX = marginX || 0;
         marginY = marginY || marginX;
 
@@ -163,6 +175,7 @@ RedLocomotive("elements", function(engine, options) {
                 }
 
 			});
+			engine.event('move-' + element.name);
 
 			return {
 				"clear": bindingAction.clear

@@ -73,6 +73,8 @@ RedLocomotive({
 			renderFlashyBlockDance('4', 100, 100);
 		}, 36);
 
+		engine.start();
+
 	});
 
 });

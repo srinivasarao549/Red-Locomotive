@@ -19,15 +19,19 @@ RedLocomotive('animations', function(engine, options) {
 			var moveTimer,
 				counter = frames || 1;
 
-
 			moveTimer = engine.every(function(){
 
 				//calculate the distance
 				var distanceX = endX - element.x,
-					distanceY = endY - element.y;
+					distanceY = endY - element.y,
+					moveX = Math.round((distanceX / counter) * 100) / 100,
+					moveY = Math.round((distanceY / counter) * 100) / 100;
 
-				element.x += Math.round((distanceX / counter) * 100) / 100;
-				element.y += Math.round((distanceY / counter) * 100) / 100;
+				element.direction = engine.angle(moveX, moveY),
+				element.distance = engine.distance(moveX, moveY);
+
+				element.x += moveX;
+				element.y += moveY;
 
 				counter -= 1;
 
