@@ -3,7 +3,8 @@ RedLocomotive('core', function(engine, options) {
 	//create configuration
 	var config = jQuery.extend({
 		"showFPS": false,
-		"pauseOnBlur": true
+		"pauseOnBlur": true,
+		"fps": 60
 	}, options);
 
 	//get the canvas
@@ -19,7 +20,8 @@ RedLocomotive('core', function(engine, options) {
 		frameCount = 0,
 		realFps = '?',
 		fpsElement,
-		time = 0,
+		cycleDrift = 0,
+		lastCoreLoopTime = 0,
 		timers = {},
 		events = {},
 		tanMap = {},
@@ -30,23 +32,45 @@ RedLocomotive('core', function(engine, options) {
 		acosMap = {};
 
 	//core loop
-	(function coreLoop(_time) {
+	(function coreLoop(coreLoopTime) {
 
-		//save the time
-		time = _time;
+		//get the milliseconds per frame
+		var mspf = Math.floor(1000 / config.fps);
 
-		//update the frame counter
-		frameCount += 1;
+		//if active
+		if (active) {
 
-		//stop the loop if the system is inactive
-		if (!active) { requestAnimFrame(coreLoop); return; }
+			//count the amount of drift in milliseconds between frames
+			cycleDrift += Math.round(((coreLoopTime - lastCoreLoopTime) / mspf) * 10) / 10;
 
-		//draw than advance
-		draw();
-		clock();
+			//get the number of cycles for this loop
+			var clockCycles = Math.floor(cycleDrift);
 
-		//call the core loop hook
-		newEvent('coreLoop');
+			//if there are cycles in this loop
+			if(clockCycles > 0) {
+
+				//update the frame counter
+				frameCount += 1;
+
+				//remove the elapsed cycles from the frameDrift
+				cycleDrift -= clockCycles;
+
+				//run the clock for each cycle
+				for(var i = 0; i < clockCycles; i += 1) {
+					clock();
+				}
+
+				//draw the current frame
+				draw();
+			}
+
+			//call the core loop hook
+			newEvent('coreLoop');
+
+		}
+
+		//save the last core loop time
+		lastCoreLoopTime = coreLoopTime;
 
 		requestAnimFrame(coreLoop);
 	})(new Date());
