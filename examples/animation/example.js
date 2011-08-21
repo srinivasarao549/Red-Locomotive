@@ -10,16 +10,31 @@ RedLocomotive({
 	//Create the main viewport
 	var mainView = engine.viewport.create('main', 'canvas', 800, 600);
 
-
 	//create a test sprite sheet
 	engine.spriteSheet.create([
-		{ "name": "test", "url": "sprites/test.png", "spriteWidth": 100, "spriteHeight": 100 }
+		["test", "sprites/test.png", 100, 100]
 	], function(){
 
 		function renderFlashyBlock(id, x, y) {
 
 			//create the flashy block
 			var flashyBlock = engine.element.create(id, 'test', x + 200, y, 100, 100);
+			/*var body = jQuery('body');
+
+			body.append('<h1>SpriteSheet</h1>');
+			body.append(flashyBlock.spriteSheet.canvas.canvas);
+
+			var sprites = flashyBlock.spriteSheet.sprites;
+			for (var rI = 0; rI < sprites.length; rI += 1) {
+				for (var cI = 0; cI < sprites[rI].length; cI += 1) {
+
+					var sprite = sprites[rI][cI];
+
+					body.append('<h1>Sprite ' + cI + 'x' + rI + '</h1>');
+					body.append(sprite.canvas);
+
+				}
+			}*/
 
 			engine.every(function () {
 				engine.animate.move(flashyBlock, 0 + x, 0 + y, 25, function () {

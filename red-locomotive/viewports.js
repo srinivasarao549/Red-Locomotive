@@ -10,7 +10,7 @@ RedLocomotive('viewports', function(engine, options){
 	 * @param width
 	 * @param height
 	 */
-	function newViewport(viewportName, selector, width, height) {
+	function newViewport(viewportName, selector, width, height, x, y) {
 
 		if (viewportName === 'all') {
 			throw new Error('Viewport name can not be reserved word "all".');
@@ -20,6 +20,10 @@ RedLocomotive('viewports', function(engine, options){
 		var canvas = jQuery(selector),
 			context = canvas[0].getContext('2d');
 
+		if(context.mozImageSmoothingEnabled) {
+			context.mozImageSmoothingEnabled = false;
+		}
+
 		if (viewportName && canvas[0].tagName === "CANVAS") {
 
 			canvas[0].width = width || 800;
@@ -28,8 +32,8 @@ RedLocomotive('viewports', function(engine, options){
 			var viewport = {
 				"node": canvas,
 				"context": context,
-				"x": 0,
-				"y": 0,
+				"x": x || 0,
+				"y": y || 0,
 				"width": canvas[0].width,
 				"height": canvas[0].height,
 				"cursor": {
@@ -102,11 +106,11 @@ RedLocomotive('viewports', function(engine, options){
 			//x is in left
 			(x < viewport.x) &&
 			//x is in right
-			(x > viewport.x + viewport.node[0].width) &&
+			(x > viewport.x + viewport.width) &&
 			//y is in top
 			(y < viewport.y) &&
 			//y is in bottom
-			(y > viewport.y + viewport.node[0].height)
+			(y > viewport.y + viewport.height)
 		);
 	}
 

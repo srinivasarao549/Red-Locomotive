@@ -22,14 +22,11 @@ RedLocomotive("elements", function(engine, options) {
 			var element = {
 				"name": elementName,
 				"spriteSheet": spriteSheet,
-				"x": x,
-				"y": y,
-				"z": z,
-				"velocity": 0,
-				"mass": 0,
-				"direction": 0,
-				"width": spriteSheet.spriteWidth,
-				"height": spriteSheet.spriteHeight,
+				"x": x || 0,
+				"y": y || 0,
+				"z": z || 0,
+				"width": spriteSheet.sprites[0][0].canvas[0].width,
+				"height": spriteSheet.sprites[0][0].canvas[0].height,
 				"spritePos": [0, 0]
 			};
 
@@ -83,24 +80,31 @@ RedLocomotive("elements", function(engine, options) {
 	 */
 	function move(element, x, y) {
 
-		//check for a collision
-		var obstacle = engine.collisions.check(element, x, y);
+		var cleared = false;
+
+		function clear() {
+			cleared = true;
+		}
+
+		var api = {
+			"clear": clear
+		};
+
+		//fire an event for movement
+		engine.event('move', api, x, y);
+		engine.event('move-' + element.name, api, x, y);
 
 		//if an element is returned by the collision check then
 		// try to place the element as close to the blocking element
 		// as possible
-		if(!obstacle){
+		if(!cleared){
 
 			//apply the element position
 			element.x = x;
 			element.y = y;
-
-			//fire an event for movement
-			engine.event('move-' + element.name);
 			return true;
 
 		} else {
-			//TODO: engine.element.move should place the object as close as it can when a collision occurs
 			return false;
 		}
 	}

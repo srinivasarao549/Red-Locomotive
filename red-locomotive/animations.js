@@ -27,7 +27,7 @@ RedLocomotive('animations', function(engine, options) {
 					moveX = Math.round((distanceX / counter) * 100) / 100,
 					moveY = Math.round((distanceY / counter) * 100) / 100;
 
-				element.direction = engine.angle(moveX, moveY),
+				element.direction = engine.degree(moveX, moveY),
 				element.distance = engine.distance(moveX, moveY);
 
 				element.x += moveX;

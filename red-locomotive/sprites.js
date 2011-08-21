@@ -1,27 +1,28 @@
 RedLocomotive('sprites', function(engine, options) {
     "use strict"
 
-    var sprites = {},
-        images = {},
-        canvas = jQuery('<canvas></canvas>'),
-        canvasContext = canvas[0].getContext('2d');
+    var spriteSheets = {};
 
     /**
      * newSpriteSheet - Makes a new sprite sheet for use with elements
 	 * @param url {string} The url to the sprite sheet image
-     * @param w {int} The sprite width
-     * @param h {int} The sprite height
-     * @param skipPixelMap {boolean} [optional] If true, A pixel map will not be created. Defaults to false
+     * @param width {int} The sprite width
+     * @param height {int} The sprite height
+     * @param callback {boolean} [optional] a callback to fire once the spritesheet is ready
      */
-    function newSpriteSheet(name, url, w, h, skipPixelMap, callback) {
+    function newSpriteSheet(name, url, width, height, callback) {
 
-		var x = 0, canvas;
+	    var ii = 0,
+			sS = [];
+	    
+		function exec(spriteSheet) {
+			
+			sS.push(spriteSheet);
 
-		function exec() {
-			if(x < name.length - 1) {
-				x += 1;
+			if(ii < name.length - 1) {
+				ii += 1;
 			} else if(typeof callback === "function") {
-				callback();
+				callback(sS);
 			}
 		}
 
@@ -29,21 +30,26 @@ RedLocomotive('sprites', function(engine, options) {
             callback = url;
 
             for (var i = 0; i < name.length; i += 1) {
-                newSpriteSheet(name[i].name, name[i].url, name[i].spriteWidth, name[i].spriteHeight, name[i].skipPixelMap, exec);
+                newSpriteSheet(name[i][0], name[i][1], name[i][2], name[i][3], exec);
             }
+	        
         } else {
 
-	        canvas = jQuery('<canvas></canvas>');
-			sprites[name] = {
-				"spriteWidth": w,
-				"spriteHeight": h,
-				"imageData": [],
-				"skipPixelMap": skipPixelMap,
-				"canvas": canvas,
-				"context": canvas[0].getContext('2d'),
-				"image": false
-			};
-			updateSpriteSheet(name, url, callback);
+	        loadImage(url, function(image) {
+
+		        var canvas = engine.canvas.create(image[0].width, image[0].height, image[0]),
+		            sprites = engine.canvas.slice(canvas, width, height),
+					spriteSheet = {
+						"canvas": canvas,
+						"sprites": sprites
+					};
+
+		        spriteSheets[name] = spriteSheet;
+
+				if(typeof callback === 'function') {
+					callback(spriteSheet);
+				}
+	        });
         }
     }
 
@@ -51,135 +57,42 @@ RedLocomotive('sprites', function(engine, options) {
      * getImage - Downloads the image and caches it, if its already cached then use the cached version
 	 * @param url {string} The url to the sprite sheet image
      * @param callback {function} [optional] A function that will fire when the image has been fully downloaded
-     * @param forceNewImage {boolean} [optional] If true, the image will download whether its cached or not. Though not recommended this can be used to update the spriteSheet revision already in memory.
      */
-    function loadImage(url, callback, forceNewImage) {
+    function loadImage(url, callback) {
 
-        //if the image has not been created, or we're forcing an overwrite
-        if (!images[url] || forceNewImage) {
+        //download the image
+        var image = jQuery('<img src="' + url + '">');
 
-            //download the image
-            images[url] = jQuery('<img src="' + url + '" alt="">');
-
-            //on ready fire the callback
-            images[url].load(function () {
-                callback(images[url]);
-            });
-
-        //else fire the callback
-        } else {
-            callback(images[url]);
-        }
-    }
-
-    /**
-     * updateSpriteSheet - Used by newSpriteSheet() to make an pixel map of a sprite. It is a separate function because it is possible to prevent newSpriteSheet() from calling updateSpriteSheet(). Separating the two functions allows manual mapping later.
-     * @param url {string} The url to the sprite sheet image
-     * @param callback {function} [optional] A callback function to be fired after the sprite has been created
-     */
-    function updateSpriteSheet(name, url, callback) {
-
-        //reference the sprite data
-        var spriteSheet = sprites[name];
-
-        //create an image
-        loadImage(url, function (image) {
-
-	        //add the image to the spriteSheet
-	        spriteSheet.image = image;
-
-			//draw the image to the spriteSheet canvas
-	        spriteSheet.canvas[0].width = image[0].width;
-	        spriteSheet.canvas[0].height = image[0].height;
-			spriteSheet.context.drawImage(image[0], 0, 0, image[0].width, image[0].height);
-
-            //get the image data
-            if (!spriteSheet.skipPixelMap) {
-
-                //collect vars for the pixel data loop
-                var canvasWidth = spriteSheet.canvas[0].width,
-                    canvasHeight = spriteSheet.canvas[0].height,
-                    columns = Math.floor(canvasWidth / spriteSheet.spriteWidth),
-                    rows = Math.floor(canvasHeight / spriteSheet.spriteHeight),
-                    pixelData = spriteSheet.imageData,
-                    spritePixelData = false;
-
-				//loop each sprite column
-				for (var c = 0; c < columns; c += 1) {
-
-					//if the pixel data column does not exist then create it
-					if (!pixelData[c]) { pixelData[c] = []; }
-
-					//loop through each sprite row
-					for (var r = 0; r < rows; r += 1) {
-
-						//if the pixel data row does not exist then create it
-						if (!pixelData[c][r]) { pixelData[c][r] = []; }
-
-						//get the pixel data
-						// top left coords, bottom right coords
-						spritePixelData = spriteSheet.context.getImageData(c * spriteSheet.spriteWidth, r * spriteSheet.spriteHeight, spriteSheet.spriteWidth, spriteSheet.spriteHeight).data;
-
-						//extract each pixel
-						for (var prgb = 0; prgb < spritePixelData.length; prgb += 4) {
-							var p = prgb / 4,
-								pr = Math.floor(p / spriteSheet.spriteWidth),
-								pc = p - Math.floor(canvasWidth * pr);
-
-							//if the pixel data row does not exist then create it
-							if (!pixelData[c][r][pc]) {	pixelData[c][r][pc] = []; }
-
-							//create the pixel slot for the rgba data
-							pixelData[c][r][pc][pr] = [spritePixelData[prgb], spritePixelData[prgb + 1], spritePixelData[prgb + 2], spritePixelData[prgb + 3]];
-						}
-					}
-                }
-
-            } else {
-                spriteSheet.imageData = false;
-            }
-
-            if  (typeof callback === "function") {
-                callback();
-            }
-        }, false);
-    }
-
-    /**
-     * removeImage - Removes an image from the cache
-	 * @param url {string} The image url
-     */
-    function removeImage(url) {
-        delete images[url];
+        //on ready fire the callback
+        image.load(function () {
+	        if(typeof callback === 'function') {
+                callback(image);
+	        }
+        });
     }
 
     /**
      * removeSpriteSheet - Removes a sprite sheet and its corresponding image
-	 * @param url {string} The sprite url
+	 * @param name {string} The sprite name
      */
     function removeSpriteSheet(name) {
-        delete sprites[name];
+        delete spriteSheets[name];
     }
 
     /**
      * getSpriteSheet - returns a sprite sheet data object by url
-     * @param url
+     * @param name
      */
     function getSpriteSheet(name) {
-        return sprites[name];
+        return spriteSheets[name];
     }
 
     //return the module api
     return {
         "spriteSheet": {
-            "get": getSpriteSheet,
             "create": newSpriteSheet,
-            "update": updateSpriteSheet,
-            "clear": removeSpriteSheet
-        },
-        "image": {
-            "load": loadImage,
-            "clear": removeImage
+            "get": getSpriteSheet,
+            "remove": removeSpriteSheet
         }
     }
 });

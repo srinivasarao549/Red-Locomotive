@@ -3,7 +3,7 @@ RedLocomotive('core', function(engine, options) {
 	//create configuration
 	var config = jQuery.extend({
 		"showFPS": false,
-		"pauseOnBlur": true,
+		"pauseOnBlur": false,
 		"fps": 60
 	}, options);
 
@@ -19,7 +19,6 @@ RedLocomotive('core', function(engine, options) {
 		active = false,
 		frameCount = 0,
 		realFps = '?',
-		fpsElement,
 		cycleDrift = 0,
 		lastCoreLoopTime = 0,
 		timers = {},
@@ -30,6 +29,10 @@ RedLocomotive('core', function(engine, options) {
 		atanMap = {},
 		asinMap = {},
 		acosMap = {};
+
+	var fpsEle = jQuery('<h1>FPS: 0 Cycle Drift: 0</h1>'),
+		avgFPS = 0;
+	jQuery('body').append(fpsEle);
 
 	//core loop
 	(function coreLoop(coreLoopTime) {
@@ -69,19 +72,27 @@ RedLocomotive('core', function(engine, options) {
 
 		}
 
+		//update the fps
+		if (options.showFPS) {
+			fpsEle.html('FPS: ' + realFps + ' Average FPS: ' + avgFPS + ' Cycle Drift: '+ (Math.floor(cycleDrift * 10) / 10));
+		}
+
 		//save the last core loop time
 		lastCoreLoopTime = coreLoopTime;
 
 		requestAnimFrame(coreLoop);
+
 	})(new Date());
 
 	//core secondary loop
 	setInterval(function () {
 
-		//update the fps
-		if (options.showFPS && engine.text) { fpsElement(); }
+		//figure out the framerate
 		realFps = frameCount;
 		frameCount = 0;
+
+		avgFPS += realFps;
+		avgFPS = Math.round(avgFPS / 2);
 
 		//stop the loop if the system is inactive
 		if (!active) { return true; }
@@ -112,9 +123,6 @@ RedLocomotive('core', function(engine, options) {
 		});
 		//window focus
 		jQuery(window).focus(function (e) {
-			if (config.pauseOnBlur) {
-				active = true;
-			}
 			newEvent('focus', e);
 		});
 		//window blur
@@ -215,13 +223,11 @@ RedLocomotive('core', function(engine, options) {
 	}
 
 	/**
-	 * Returns angle of an x and y offset.
+	 * Returns degree of an x and y offset.
 	 * @param xDistance
 	 * @param yDistance
 	 */
-
-	//TODO: Does not work! does not rotate the trangle based on quadrant
-	function angle(xDistance, yDistance) {
+	function degree(xDistance, yDistance) {
 
 		//if the distance is along x or y return the degree without using trig
 		//
@@ -284,12 +290,12 @@ RedLocomotive('core', function(engine, options) {
 			break;
 		}
 
-		//use arc tangent to find the angle of ascent.
+		//use arc tangent to find the degree of ascent.
 		return (Math.round((engine.atan(decimal)) * 100) / 100) + (90 * quad);
 	}
 
 	function vector(xDistance, yDistance) {
-		return [angle(xDistance, yDistance), distance(xDistance, yDistance)];
+		return [degree(xDistance, yDistance), distance(xDistance, yDistance)];
 	}
 
 	/**
@@ -309,7 +315,7 @@ RedLocomotive('core', function(engine, options) {
 		var quad = Math.floor(degree / 90);
 		degree -= 90 * quad;
 
-		var x, y;
+		var x = 0, y = 0;
 
 		switch (quad) {
 			case 0:
@@ -439,7 +445,7 @@ RedLocomotive('core', function(engine, options) {
 	}
 
 	/**
-	 * action - Registers a callback to be fired on the execution of a an event.
+	 * newAction - Registers a callback to be fired on the execution of a an event.
 	 * @param eventName {string} Name of the event to be paired with.
 	 * @param callback {function} Callback to be executed on execution of the defined event.
 	 */
@@ -548,180 +554,73 @@ RedLocomotive('core', function(engine, options) {
 
 		var viewports = engine.viewport.get('all'),
 			viewport,
-			height,
-			width;
+			elements,
+			element,
+			x,
+			y,
+			stack;
 
 		//loop through each viewport
 		for (var viewportName in viewports) {
 			if (viewports.hasOwnProperty(viewportName)) {
 				viewport = viewports[viewportName];
 
-				//get the viewport height and width
-				width = viewport.node[0].width;
-				height = viewport.node[0].height;
+				//clear the stack
+				stack = [];
 
 				//empty the viewport
-				viewport.context.clearRect(0, 0, width, height);
+				viewport.context.clearRect(0, 0, viewport.width, viewport.height);
 
-				//draw elements
-				drawElements(viewport);
+				//get the elements
+				elements = engine.element.get('all');
 
-				viewport.context.strokeStyle = '#f00';
-				viewport.context.fillStyle = 'transparent';
-				viewport.context.lineWidth = 1;
-				viewport.context.lineCap = 'square';
-				viewport.context.strokeRect(viewport.cursor.x - 1, viewport.cursor.y - 1, 3, 3);
+				//order the new content
+				for (var elementName in elements) {
+					if (elements.hasOwnProperty(elementName)) {
 
-				//draw text elements
-				drawTextElements(viewport);
-			}
-		}
-	}
+						//get the element
+						element = elements[elementName];
 
-	/**
-	 * Draws all elements
-	 * @param viewport
-	 */
-	function drawElements(viewport) {
-		var elements,
-			element,
-			x,
-			y,
-			stack = [];
+						x = element.x - viewport.x;
+						y = element.y - viewport.y;
 
-		//get the elements
-		elements = engine.element.get('all');
-
-		//order the new content
-		for (var elementName in elements) {
-			if (elements.hasOwnProperty(elementName)) {
-
-				//get the element
-				element = elements[elementName];
-
-				//check to make sure its a valid element
-				if (element.spriteSheet) {
-
-					x = element.x - viewport.x;
-					y = element.y - viewport.y;
-
-					//Make sure the element is in view
-					if (
-						x + element.width > 0 &&
-						x < viewport.node[0].width &&
-						y + element.height > 0 &&
-						y < viewport.node[0].height
-					) {
-
-						if (!stack[element.z]) {
-							stack[element.z] = [];
+						//Make sure the element is in view
+						if (
+							x + element.width > 0 &&
+							x < viewport.width &&
+							y + element.height > 0 &&
+							y < viewport.height &&
+							element.z > 0
+						) {
+							if (!stack[element.z]) {
+								stack[element.z] = [];
+							}
+							stack[element.z].push(element);
 						}
-						stack[element.z].push(element);
-
 					}
 				}
 
-			}
-		}
+				newEvent('draw', stack);
 
-		newEvent('draw', stack);
+				//draw the new content
+				for (var level in stack) {
+					if (stack.hasOwnProperty(level)) {
+						for (var i = 0; i < stack[level].length; i += 1) {
 
-		//draw the new content
-		for (var level in stack) {
-			if (stack.hasOwnProperty(level)) {
-				for (var i = 0; i < stack[level].length; i += 1) {
+							//get the element
+							element = stack[level][i];
 
-					//get the element
-					element = stack[level][i];
+							//x and y
+							x = element.x - viewport.x;
+							y = element.y - viewport.y;
 
-					//x and y
-					x = element.x - viewport.x;
-					y = element.y - viewport.y;
+							var sprite = element.spriteSheet.sprites[element.spritePos[0]][element.spritePos[1]],
+								imageData = sprite.context.getImageData(0, 0, element.width, element.height);
 
-					//draw the element to the view
-					drawElement(element, viewport.context, x, y);
-				}
-			}
-		}
-	}
-
-	function drawElement(element, context, dX, dY, cPC, cPR) {
-
-		var cP;
-
-		if (cPC && cPR) {
-			cP = [cPC, cPR];
-		} else {
-			cP = element.spritePos;
-		}
-
-		//abstract some data
-		var canvas = element.spriteSheet.canvas,
-			sW = element.spriteSheet.spriteWidth,
-			sH = element.spriteSheet.spriteHeight,
-
-			sX = Math.floor(cP[0] * sW),
-			sY = Math.floor(cP[1] * sH),
-
-			dW = element.spriteSheet.spriteWidth,
-			dH = element.spriteSheet.spriteHeight;
-
-		if(
-			(sX < 0) ||
-			(sY < 0) ||
-			(sX + sW > canvas[0].width) ||
-			(sY + sH > canvas[0].height)
-		) {
-			throw new RangeError('Sprite at [' + cP[0] + ', ' + cP[1] + '] is out of range on element "' + element.name + '"');
-		} else {
-			//draw the sprite on to the
-			context.drawImage(canvas[0], sX, sY, sW, sH, dX, dY, dW, dH);
-		}
-
-	}
-
-	/**
-	 * Draws all text elements
-	 * @param viewport {object}
-	 */
-	function drawTextElements(viewport) {
-		var textElements,
-			textElement,
-			font,
-			fontString,
-			size,
-			text,
-			x,
-			y,
-			w;
-
-		//get the elements
-		textElements = engine.text.get('all');
-
-		//draw the new content
-		for (var elementName in textElements) {
-			if (textElements.hasOwnProperty(elementName)) {
-
-				//get the element
-				textElement = textElements[elementName];
-
-				if (textElement.text && textElement.size && textElement.font) {
-
-					//abstract some data
-					font = textElement.font;
-					size = textElement.size;
-					text = textElement.text;
-					x = textElement.x;
-					y = textElement.y;
-					w = textElement.width || false;
-
-					//set the font
-					fontString = size + 'px ' + font;
-
-					viewport.context.font = fontString;
-					viewport.context.fillStyle = '#000';
-					viewport.context.strokeStyle = '#000';
-					viewport.context.fillText(text, x, y, w);
+							//draw to the context
+							viewport.context.putImageData(imageData, x, y);
+						}
+					}
 				}
 			}
 		}
@@ -762,11 +661,8 @@ RedLocomotive('core', function(engine, options) {
 		"pause": pause,
 		"resume": resume,
 		"start": resume,
-		"canvas": {
-			"applyElement": drawElement
-		},
 		"distance": distance,
-		"angle": angle,
+		"degree": degree,
 		"vector": vector,
 		"coords": coords,
 		"every": every,

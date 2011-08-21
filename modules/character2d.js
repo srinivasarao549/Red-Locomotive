@@ -41,7 +41,7 @@ RedLocomotive('character2d', function(engine, options) {
 
 			//skip frames
 			if(c < binding.frames) {
-				
+
 				c += 1;
 
 			//load frame
@@ -55,6 +55,8 @@ RedLocomotive('character2d', function(engine, options) {
 					f += 1;
 				} else {
 					f = 0;
+
+					// there is a running sequence use it from now on
 					if(binding.runningSequence.length) {
 						sequence = binding.runningSequence;
 					}
@@ -75,10 +77,15 @@ RedLocomotive('character2d', function(engine, options) {
 		 */
 		function animateMovement(movement, startSequence, runningSequence, frames) {
 
+			if(typeof runningSequence === 'number' && !frames) {
+				frames = runningSequence;
+				runningSequence = false;
+			}
+
 			//bind the new animation set
 			if(movement === 'idle' || movement === 'up' || movement === 'down' || movement === 'right' || movement === 'left'){
 				aniBindings[movement] = {
-					"startSequence": startSequence || runningSequence,
+					"startSequence": startSequence,
 					"runningSequence": runningSequence,
 					"frames": frames
 				}
@@ -205,12 +212,25 @@ RedLocomotive('character2d', function(engine, options) {
 	}
 
 	function move(character, x, y) {
-		setMovement(character, engine.angle(x - character.x, y - character.y));
-		engine.element.move(character, x, y);
+
+		var vector = engine.vector(x - character.x, y - character.y);
+		var coords = {"x": x, "y": y};
+
+		setMovement(character, vector[0]);
+
+		if(!engine.element.move(character, coords.x, coords.y)) {
+			coords = engine.coords(vector[0] + 75, vector[1]);
+
+			if(!engine.element.move(character, coords.x + character.x, coords.y + character.y)) {
+				coords = engine.coords(vector[0] - 75, vector[1]);
+
+				engine.element.move(character, coords.x + character.x, coords.y + character.y);
+			}
+		}
 	}
 
 	function animateMove(character, x, y, frames, callback) {
-		setMovement(character, engine.angle(x - character.x, y - character.y), frames);
+		setMovement(character, engine.degree(x - character.x, y - character.y), frames);
 		engine.animate.move(character, x, y, frames, callback);
 	}
 
