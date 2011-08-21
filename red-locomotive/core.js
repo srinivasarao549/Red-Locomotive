@@ -37,11 +37,11 @@ RedLocomotive('core', function(engine, options) {
 	//core loop
 	(function coreLoop(coreLoopTime) {
 
-		//get the milliseconds per frame
-		var mspf = Math.floor(1000 / config.fps);
-
 		//if active
 		if (active) {
+
+			//get the milliseconds per frame
+			var mspf = Math.floor(1000 / config.fps);
 
 			//count the amount of drift in milliseconds between frames
 			cycleDrift += Math.round(((coreLoopTime - lastCoreLoopTime) / mspf) * 10) / 10;
@@ -67,14 +67,14 @@ RedLocomotive('core', function(engine, options) {
 				draw();
 			}
 
+			//update the fps
+			if (options.showFPS) {
+				fpsEle.html('FPS: ' + realFps + ' Cycles: '+ clockCycles);
+			}
+
 			//call the core loop hook
 			newEvent('coreLoop');
 
-		}
-
-		//update the fps
-		if (options.showFPS) {
-			fpsEle.html('FPS: ' + realFps + ' Average FPS: ' + avgFPS + ' Cycle Drift: '+ (Math.floor(cycleDrift * 10) / 10));
 		}
 
 		//save the last core loop time
@@ -615,10 +615,10 @@ RedLocomotive('core', function(engine, options) {
 							y = element.y - viewport.y;
 
 							var sprite = element.spriteSheet.sprites[element.spritePos[0]][element.spritePos[1]],
-								imageData = sprite.context.getImageData(0, 0, element.width, element.height);
+								imageData = sprite.canvas[0];
 
 							//draw to the context
-							viewport.context.putImageData(imageData, x, y);
+							viewport.context.drawImage(imageData, x, y);
 						}
 					}
 				}

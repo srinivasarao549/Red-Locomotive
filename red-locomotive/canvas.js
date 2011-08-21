@@ -4,11 +4,11 @@ RedLocomotive('canvas', function(){
 	 * newCanvas - Creates a new Red Locomotive canvas width dimensions and image data.
 	 * @param width {int} The canvas width
 	 * @param height {int} The canvas height
-	 * @param imageData {object} A image object or an imageData object
+	 * @param image {object} An image or canvas object to copy from
 	 * @param dX {int} The x position to draw the image data from
 	 * @param dY {int} The y position to draw the image data from
 	 */
-	function newCanvas(width, height, imageData, dX, dY) {
+	function newCanvas(width, height, image, sX, sY, sW, sH, dX, dY, dW, dH) {
 
 		var canvasEle = jQuery('<canvas></canvas>'),
 			context = canvasEle[0].getContext('2d');
@@ -20,20 +20,19 @@ RedLocomotive('canvas', function(){
 			canvasEle[0].height = height;
 		}
 
-		if(imageData) {
+		if(image) {
+
+			sX = sX || 0;
+			sY = sY || 0;
+			sW = sW || image.width;
+			sH = sH || image.height;
 
 			dX = dX || 0;
 			dY = dY || 0;
+			dW = dW || image.width;
+			dH = dH || image.height;
 
-			//if an image
-			if (imageData.src) {
-				context.drawImage(imageData, dX, dY);
-			}
-
-			//if a image data object
-			else if(imageData.data) {
-				context.putImageData(imageData, dX, dY);
-			}
+			context.drawImage(image, sX, sY, sW, sH, dX, dY, dW, dH);
 		}
 
 		return {
@@ -91,11 +90,8 @@ RedLocomotive('canvas', function(){
 		var width = topRight[0] - topLeft[0],
 			height = bottomLeft[1] - topLeft[1];
 
-		//cut out the trim area from the old canvas
-		var imageData = canvas.context.getImageData(topLeft[0], topLeft[1], width, height);
-
 		//apply the trimmed data to a new canvas and return it
-		return newCanvas(width, height, imageData);
+		return newCanvas(width, height, canvas.canvas[0], topLeft[0], topLeft[1], width, height, 0, 0, width, height);
 
 	}
 
@@ -119,13 +115,10 @@ RedLocomotive('canvas', function(){
 			for (var cI = 0; cI < columns; cI += 1) {
 
 				var x = rI * width,
-					y = cI * height,
-
-					//cut out the trim area from the old canvas
-					imageData = canvas.context.getImageData(x, y, width, height);
+					y = cI * height;
 
 				//apply the image
-				canvases[rI][cI] = newCanvas(width, height, imageData);
+				canvases[rI][cI] = newCanvas(width, height, canvas.canvas[0], x, y, width, height, 0, 0, width, height);
 
 			}
 		}
