@@ -1,7 +1,31 @@
 Red Locomotive
 ==============
 
-Red locomotive aims to ease the development of complex games for the web.
+Red locomotive is a pure JavaScript game engine. It has an extensive set of modules for creating thousands of animated
+and interactive game elements. Build anything you want. Red Locomotive is not a framework and will not restrict you.
+It gives you access to a very useful api that offers everything from a module loader to vector calculating functions.
 
-***Red Locomotive is still in early development. More information will be added
-to this readme once Red Locomotive is available as an alpha release.***
+Red Locomotive will allow you to build anything from a full featured RPG to a cool side scroller, even a isometric city
+builder.
+
+**Red Locomotive is still in dev. you can try it out but be warned, Its not feature complete and the API may change.**
+
+Current Features:
+-----------------
+- Module system
+- Sprite animation
+- Movement animation
+- Calculate coordinates via vectors
+- Multiple independent viewports
+- Viewport scrolling
+- Partial key bindings
+- Improved trigonometric functions
+- Framerate of 120 with 2000 animated elements
+- Collision Detection
+
+Coming soon:
+------------
+- Viewport and sprite shaders and filters
+- Pathfinding
+- Isometrics
+
