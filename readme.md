@@ -29,3 +29,7 @@ Coming soon:
 - Pathfinding
 - Isometrics
 
+Please Donate!
+--------------
+[![Flattr this git repo](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=RobertWHurst&url=http://github.com/RobertWHurst/Red-Locomotive&title=Red Locomotive&language=en_GB&tags=github&category=software)
+
