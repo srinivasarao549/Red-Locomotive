@@ -46,7 +46,7 @@ RedLocomotive('core', function(engine, options) {
 			var clockCycles = Math.floor(cycleDrift);
 
 			//prevent runway cycles
-			clockCycles = clockCycles <= 30 ? clockCycles : 30;
+			clockCycles = clockCycles <= 600 ? clockCycles : 600;
 
 			//if there are cycles in this loop
 			if(clockCycles > 0) {
