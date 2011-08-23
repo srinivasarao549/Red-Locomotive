@@ -85,9 +85,6 @@ RedLocomotive('core', function(engine, options) {
 		realFps = frameCount;
 		frameCount = 0;
 
-		avgFPS += realFps;
-		avgFPS = Math.round(avgFPS / 2);
-
 		//stop the loop if the system is inactive
 		if (!active) { return true; }
 
