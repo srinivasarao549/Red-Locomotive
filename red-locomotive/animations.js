@@ -9,6 +9,16 @@ RedLocomotive('animations', function(engine, options) {
 	 */
 	function move(element, endX, endY, frames, callback) {
 
+		var cleared = false;
+
+		function clear() {
+			cleared = true;
+		}
+
+		var api = {
+			"clear": clear
+		};
+
 		function setCallback(newCallback) {
 			callback = newCallback;
 		}
@@ -21,25 +31,7 @@ RedLocomotive('animations', function(engine, options) {
 
 			moveTimer = engine.every(function(){
 
-				//calculate the distance
-				var distanceX = endX - element.x,
-					distanceY = endY - element.y,
-					moveX = Math.round((distanceX / counter) * 100) / 100,
-					moveY = Math.round((distanceY / counter) * 100) / 100;
-
-				element.direction = engine.degree(moveX, moveY),
-				element.distance = engine.distance(moveX, moveY);
-
-				element.x += moveX;
-				element.y += moveY;
-
-				counter -= 1;
-
-				if(!counter) {
-
-					element.x = endX;
-					element.y = endY;
-
+				if(cleared) {
 					//kill the timer
 					moveTimer.clear();
 
@@ -47,6 +39,40 @@ RedLocomotive('animations', function(engine, options) {
 						callback();
 					}
 				}
+
+				if(!counter) {
+
+					newX = endX;
+					newY = endY;
+
+					//kill the timer
+					moveTimer.clear();
+
+					if (typeof callback === 'function') {
+						callback();
+					}
+
+				} else {
+
+					counter -= 1;
+
+					//calculate the distance
+					var distanceX = endX - element.x,
+						distanceY = endY - element.y,
+						moveX = Math.round((distanceX / counter) * 100) / 100,
+						moveY = Math.round((distanceY / counter) * 100) / 100,
+						newX = element.x + moveX,
+						newY = element.y + moveY;
+				}
+
+
+				element.x = newX;
+				element.y = newY;
+
+				//fire an event for movement
+				engine.event('move', api, newX, newY);
+				engine.event('move-' + element.name, api, newX, newY);
+
 			});
 
 			return {
@@ -71,6 +97,7 @@ RedLocomotive('animations', function(engine, options) {
 		var frame = 0, useloop = false;
 
 		if (element.spriteSheet && element.spritePos && typeof sequence === 'object') {
+
 			var aniTimer = engine.every(function () {
 
 				element.spritePos = sequence[frame];

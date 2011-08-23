@@ -30,10 +30,6 @@ RedLocomotive('core', function(engine, options) {
 		asinMap = {},
 		acosMap = {};
 
-	var fpsEle = jQuery('<h1>FPS: 0 Cycle Drift: 0</h1>'),
-		avgFPS = 0;
-	jQuery('body').append(fpsEle);
-
 	//core loop
 	(function coreLoop(coreLoopTime) {
 
@@ -48,6 +44,9 @@ RedLocomotive('core', function(engine, options) {
 
 			//get the number of cycles for this loop
 			var clockCycles = Math.floor(cycleDrift);
+
+			//prevent runway cycles
+			clockCycles = clockCycles <= 30 ? clockCycles : 30;
 
 			//if there are cycles in this loop
 			if(clockCycles > 0) {
@@ -65,11 +64,6 @@ RedLocomotive('core', function(engine, options) {
 
 				//draw the current frame
 				draw();
-			}
-
-			//update the fps
-			if (options.showFPS) {
-				fpsEle.html('FPS: ' + realFps + ' Cycles: '+ clockCycles);
 			}
 
 			//call the core loop hook
@@ -135,24 +129,32 @@ RedLocomotive('core', function(engine, options) {
 
 		jQuery(window).keydown(function(e) {
 			newEvent('keydown', e);
-			if (e.keyCode === 38 && !depressedKeyCodes[38]) {
-				keyboard.axisCode += 1;
-				depressedKeyCodes[38] = true;
+			if (e.keyCode === 38) {
+				if(!depressedKeyCodes[38]) {
+					keyboard.axisCode += 1;
+					depressedKeyCodes[38] = true;
+				}
 				return false;
 			}
-			if (e.keyCode === 39 && !depressedKeyCodes[39]) {
-				keyboard.axisCode += 10;
-				depressedKeyCodes[39] = true;
+			if (e.keyCode === 39) {
+				if(!depressedKeyCodes[39]) {
+					keyboard.axisCode += 10;
+					depressedKeyCodes[39] = true;
+				}
 				return false;
 			}
-			if (e.keyCode === 40 && !depressedKeyCodes[40]) {
-				keyboard.axisCode += 100;
-				depressedKeyCodes[40] = true;
+			if (e.keyCode === 40) {
+				if(!depressedKeyCodes[40]) {
+					keyboard.axisCode += 100;
+					depressedKeyCodes[40] = true;
+				}
 				return false;
 			}
-			if (e.keyCode === 37 && !depressedKeyCodes[37]) {
-				keyboard.axisCode += 1000;
-				depressedKeyCodes[37] = true;
+			if (e.keyCode === 37) {
+				if(!depressedKeyCodes[37]) {
+					keyboard.axisCode += 1000;
+					depressedKeyCodes[37] = true;
+				}
 				return false;
 			}
 			if (e.keyCode === 27) {
@@ -590,7 +592,7 @@ RedLocomotive('core', function(engine, options) {
 							x < viewport.width &&
 							y + element.height > 0 &&
 							y < viewport.height &&
-							element.z > 0
+							typeof element.z === 'number'
 						) {
 							if (!stack[element.z]) {
 								stack[element.z] = [];
@@ -619,6 +621,7 @@ RedLocomotive('core', function(engine, options) {
 
 							//draw to the context
 							viewport.context.drawImage(imageData, x, y);
+
 						}
 					}
 				}

@@ -41,7 +41,7 @@ RedLocomotive('character2d', function(engine, options) {
 
 			//skip frames
 			if(c < binding.frames) {
-
+				
 				c += 1;
 
 			//load frame
@@ -184,24 +184,29 @@ RedLocomotive('character2d', function(engine, options) {
 		}
 	}
 
-	function setMovement(character, degree, framesToHoldFor) {
+	function setMovement(character, x, y, framesToHoldFor) {
 
-		var framesToHoldFor = (framesToHoldFor || 0) + 1,
-		degree = degree + 45;
-		degree = degree < 360 ? degree : 0;
+		if(character.idleTimer) {
+			character.idleTimer.clear();
+			delete character.idleTimer;
+		}
 
-		//prevent the sprite from returning to idle
-		if(character.idleTimer) { character.idleTimer.clear(); delete character.idleTimer; }
+		var _x = x < 0 ? -x : x,
+			_y = y < 0 ? -y : y,
+			mH = _x >= _y;
 
-		//find out the state based on direction
-		if(degree > 0 && degree < 90) {
-			character.movement = 'up';
-		} else if (degree >= 90 && degree <= 180){
-			character.movement = 'right';
-		} else if (degree > 180 && degree < 270){
-			character.movement = 'down';
-		} else if (degree >= 270 || degree === 0){
-			character.movement = 'left';
+		if(mH) {
+			if(x < 0) {
+				character.movement = 'left';
+			} else {
+				character.movement = 'right';
+			}
+		} else {
+			if(y < 0) {
+				character.movement = 'up';
+			} else {
+				character.movement = 'down';
+			}
 		}
 
 		//setup a timer to idle the sprite movement
@@ -216,7 +221,7 @@ RedLocomotive('character2d', function(engine, options) {
 		var vector = engine.vector(x - character.x, y - character.y);
 		var coords = {"x": x, "y": y};
 
-		setMovement(character, vector[0]);
+		setMovement(character, x - character.x, y - character.y);
 
 		if(!engine.element.move(character, coords.x, coords.y)) {
 			coords = engine.coords(vector[0] + 75, vector[1]);
@@ -230,7 +235,7 @@ RedLocomotive('character2d', function(engine, options) {
 	}
 
 	function animateMove(character, x, y, frames, callback) {
-		setMovement(character, engine.degree(x - character.x, y - character.y), frames);
+		setMovement(character, x - character.x, y - character.y, frames);
 		engine.animate.move(character, x, y, frames, callback);
 	}
 
