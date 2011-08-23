@@ -2,10 +2,10 @@
 RedLocomotive({
 
 	//Configuration
-	"baseUrl": "../../",
-	"showFPS": true
+	"baseUrl": "../../"
 
 }, function(engine) {
+	engine.start();
 
 	engine.require('character2d', run);
 
@@ -16,7 +16,7 @@ RedLocomotive({
 
 		//create a test sprite sheet
 		engine.spriteSheet.create([
-			{ "name": "test", "url": "sprites/test.png", "spriteWidth": 100, "spriteHeight": 100 }
+		["test", "sprites/test.png", 100, 100]
 		], createChar);
 
 	}
@@ -32,7 +32,7 @@ RedLocomotive({
 		test.sequence.right([[0, 3], [1, 3]], [], 5);
 		test.sequence.left([[0, 4], [1, 4]], [], 5);
 
-		test.bindToArrowKeys();
+		engine.character2d.bindToArrowKeys(test, 6);
 
 	}
 });

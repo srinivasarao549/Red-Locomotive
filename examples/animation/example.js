@@ -5,6 +5,7 @@ RedLocomotive({
 	"showFPS": true
 
 }, function(engine) {
+	engine.start();
 
 
 	//Create the main viewport
@@ -19,22 +20,6 @@ RedLocomotive({
 
 			//create the flashy block
 			var flashyBlock = engine.element.create(id, 'test', x + 200, y, 100, 100);
-			/*var body = jQuery('body');
-
-			body.append('<h1>SpriteSheet</h1>');
-			body.append(flashyBlock.spriteSheet.canvas.canvas);
-
-			var sprites = flashyBlock.spriteSheet.sprites;
-			for (var rI = 0; rI < sprites.length; rI += 1) {
-				for (var cI = 0; cI < sprites[rI].length; cI += 1) {
-
-					var sprite = sprites[rI][cI];
-
-					body.append('<h1>Sprite ' + cI + 'x' + rI + '</h1>');
-					body.append(sprite.canvas);
-
-				}
-			}*/
 
 			engine.every(function () {
 				engine.animate.move(flashyBlock, 0 + x, 0 + y, 25, function () {
@@ -87,8 +72,6 @@ RedLocomotive({
 		engine.after(function(){
 			renderFlashyBlockDance('4', 100, 100);
 		}, 36);
-
-		engine.start();
 
 	});
 

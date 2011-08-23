@@ -2,17 +2,17 @@
 RedLocomotive({
 	
 	//Configuration
-	"baseUrl": "../../",
-	"showFPS": true
+	"baseUrl": "../../"
 
 }, function(engine) {
+	engine.start();
 
 	//Create the main viewport
 	var mainView = engine.viewport.create('main', 'canvas', 800, 600);
 
 	//create a test sprite sheet
 	engine.spriteSheet.create([
-		{ "name": 'test', "url": "sprites/test.png", "spriteWidth": 100, "spriteHeight": 100 }
+		["test", "sprites/test.png", 100, 100]
 	], createElements);
 
 	//create the main elements
