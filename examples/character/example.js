@@ -7,32 +7,23 @@ RedLocomotive({
 }, function(engine) {
 	engine.start();
 
-	engine.require('character2d', run);
-
-	function run() {
-
 		//Create the main viewport
-		var mainView = engine.viewport.create('main', 'canvas', 800, 600);
+		engine.viewport.create('main', 'canvas', 800, 600);
 
 		//create a test sprite sheet
 		engine.spriteSheet.create([
 		["test", "sprites/test.png", 100, 100]
-		], createChar);
+		], function() {
 
-	}
+		var test = engine.character.create('test', "test", 100, 100);
 
-	//create the main elements
-	function createChar() {
+		engine.character.onIdle(test, [[0, 0], [1, 0]], [], 5);
+		engine.character.onUp(test, [[0, 1], [1, 1]], [], 5);
+		engine.character.onDown(test, [[0, 2], [1, 2]], [], 5);
+		engine.character.onRight(test, [[0, 3], [1, 3]], [], 5);
+		engine.character.onLeft(test, [[0, 4], [1, 4]], [], 5);
 
-		var test = engine.character2d.create('test', "test", 100, 100);
+		engine.character.bindToArrowKeys(test, 6);
+	});
 
-		test.sequence.idle([[0, 0], [1, 0]], [], 5);
-		test.sequence.up([[0, 1], [1, 1]], [], 5);
-		test.sequence.down([[0, 2], [1, 2]], [], 5);
-		test.sequence.right([[0, 3], [1, 3]], [], 5);
-		test.sequence.left([[0, 4], [1, 4]], [], 5);
-
-		engine.character2d.bindToArrowKeys(test, 6);
-
-	}
 });

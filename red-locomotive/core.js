@@ -209,7 +209,7 @@ RedLocomotive('core', function(engine, options) {
 	}
 
 	/**
-	 * Returns the distance from an x and y offset.
+	 * Returns the distance from an x and y offset
 	 * @param xDistance
 	 * @param yDistance
 	 */
@@ -419,9 +419,10 @@ RedLocomotive('core', function(engine, options) {
 	/**
 	 * newEvent - Executes a set of action by newEvent name.
 	 * @param eventName {string} The event name.
-	 * @param data {object} [optional] Any data object to be passed to the actions on execution.
+	 * @param ...data {arguments} [optional] Any data to be passed to the actions on execution.
 	 */
-	function newEvent(eventName, data) {
+	function newEvent(eventName) {
+		var data = Array.prototype.slice.call(arguments, 1);
 
 		/**
 		 * Removes the event
@@ -435,7 +436,7 @@ RedLocomotive('core', function(engine, options) {
 		if (events[eventName]) {
 			for (var actionId in events[eventName]) {
 				if (events[eventName].hasOwnProperty(actionId) && typeof events[eventName][actionId] === "function") {
-					events[eventName][actionId](data);
+					events[eventName][actionId].apply(this, data);
 				}
 			}
 		}

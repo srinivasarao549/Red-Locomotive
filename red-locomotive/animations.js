@@ -70,8 +70,8 @@ RedLocomotive('animations', function(engine, options) {
 				element.y = newY;
 
 				//fire an event for movement
-				engine.event('move', api, newX, newY);
-				engine.event('move-' + element.name, api, newX, newY);
+				engine.event('move', api, moveX, moveY);
+				engine.event('move-' + element.name, api, moveX, moveY);
 
 			});
 
