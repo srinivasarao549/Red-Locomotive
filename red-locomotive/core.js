@@ -39,8 +39,12 @@ RedLocomotive('core', function(engine, options) {
 			//get the milliseconds per frame
 			var mspf = Math.floor(1000 / config.fps);
 
-			//count the amount of drift in milliseconds between frames
-			cycleDrift += Math.round(((coreLoopTime - lastCoreLoopTime) / mspf) * 10) / 10;
+			if (cycleDrift < 480) {
+
+				//count the amount of drift in milliseconds between frames
+				cycleDrift += Math.round(((coreLoopTime - lastCoreLoopTime) / mspf) * 10) / 10;
+
+			}
 
 			//get the number of cycles for this loop
 			var clockCycles = Math.floor(cycleDrift);
@@ -549,6 +553,32 @@ RedLocomotive('core', function(engine, options) {
 		return realFps;
 	}
 
+	function newCallCounter(iterations, callback) {
+		
+		var args = Array.prototype.slice.call(arguments, 2),
+			i = 1;
+
+		if (!iterations) {
+
+			if (typeof callback === "function") {
+				callback(args);
+			}
+			return function () {};
+
+		} else {
+
+			return function () {
+				if(i < iterations) {
+					i += 1;
+				} else if(typeof callback === "function") {
+					callback.apply(this, args);
+				}
+
+			}
+			
+		}
+	}
+
 	/**
 	 * Draws everything!!!
 	 */
@@ -661,6 +691,7 @@ RedLocomotive('core', function(engine, options) {
 		"mouseDown": getMouseDown,
 		"keyboard": getKeyboard,
 		"loopIsActive": loopIsActive,
+		"callCounter": newCallCounter,
 		"pause": pause,
 		"resume": resume,
 		"start": resume,

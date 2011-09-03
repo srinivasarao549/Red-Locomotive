@@ -53,7 +53,7 @@
 		if(typeof moduleName === 'object') {
 			var i = 1;
 
-			function loadCounter () {
+			function exec () {
 
 				if (i < moduleName.length) {
 					i += 1;
@@ -66,7 +66,7 @@
 			//load each module
 			for(var ii = 0; ii < moduleName.length; ii += 1) {
 				//load the current module
-				require(moduleName[ii], loadCounter, inCore);
+				require(moduleName[ii], exec, inCore);
 			}
 
 		//if a single module is given
@@ -129,14 +129,21 @@
 				//loop through each of the core modules and load them with require
 				require(coreModules, function () {
 
-					if(options.require && options.require.length) {
-						require(options.require, function(){
+					var required = options.require,
+						spriteSheets = options.spriteSheets,
+						count = (required && required.length || 0) + (spriteSheets && spriteSheets.length || 0),
+						counter = engine.callCounter(count, function () {
 							callback(engine);
 						});
-					} else {
-						callback(engine);
+
+					if(required && required.length) {
+						require(required, counter);
 					}
-					
+
+					if(spriteSheets && spriteSheets.length) {
+						engine.spriteSheet.create(spriteSheets, counter);
+					}
+
 				}, true);
 			}
 		}

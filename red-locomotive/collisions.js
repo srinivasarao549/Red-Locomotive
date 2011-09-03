@@ -1,13 +1,14 @@
 RedLocomotive('collisions', function(engine, options) {
 
+	var collisions = {};
 
 	function setCollisionMask(element, spriteCol, spriteRow) {
-		element.collisionMask = [spriteCol, spriteRow];
+		collisions[element.name] = [spriteCol, spriteRow];
 	}
 
 	function checkForCollision() {
 		var elements = Array.prototype.splice.call(arguments),
-			collisions = false;
+			activeCollisions = false;
 
 		//get the location of each sprite
 		for (var i = 0; i < elements.length; i += 1) {
@@ -37,11 +38,11 @@ RedLocomotive('collisions', function(engine, options) {
 				if(xC || yC) {
 
 					//get the other elements collision mask
-					var oECC = otherElement.collisionMask[0] || 0,
-						oECR = otherElement.collisionMask[1] || 0;
+					var oECC = collisions[otherElement.name][0] || 0,
+						oECR = collisions[otherElement.name][1] || 0;
 
-					var eCC = otherElement.collisionMask[0] || 0,
-						eCR = otherElement.collisionMask[1] || 0;
+					var eCC = collisions[element.name][0] || 0,
+						eCR = collisions[element.name][1] || 0;
 
 					//draw the each element's collision mask to a canvas and check for remaining pixels
 					var collision = engine.canvas.create(element.width, element.height, otherElement.sprites[oECC, oECR]);
@@ -50,18 +51,25 @@ RedLocomotive('collisions', function(engine, options) {
 
 					//check to see if the canvas is blank
 					if(!engine.canvas.isBlank(collision)) {
-						if(!collisions) {
-							collisions = {};
+						if(!activeCollisions) {
+							activeCollisions = {};
 						}
-						if(!collisions[element.name]) {
-							collisions[element.name] = [];
+						if(!activeCollisions[element.name]) {
+							activeCollisions[element.name] = [];
 						}
-						collisions[element.name].push(otherElement);
+						activeCollisions[element.name].push([otherElement, element]);
 					}
 				}
 			}
 		}
 
-		return collisions;
+		return activeCollisions;
 	}
+
+	//return the api
+	return {
+		"setMask": setCollisionMask,
+		"check": checkForCollision
+	}
+
 });
