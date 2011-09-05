@@ -6,8 +6,8 @@ RedLocomotive('collisions', function(engine, options) {
 		collisions[element.name] = [spriteCol, spriteRow];
 	}
 
-	function checkForCollision() {
-		var elements = Array.prototype.splice.call(arguments),
+	function checkForCollision(element) {
+		var elements = element && [element] || Array.prototype.splice.call(arguments),
 			activeCollisions = false;
 
 		//get the location of each sprite

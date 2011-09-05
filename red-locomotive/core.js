@@ -100,74 +100,75 @@ RedLocomotive('core', function(engine, options) {
 	}, 1000);
 
 	//events
-	(function eventsHooks() {
+	(function domEventHooks() {
 		var depressedKeyCodes = [];
 
 		//mouse position
 		jQuery(document).mousemove(function (e) {
 			mousePos = [e.pageX , e.pageY];
-			newEvent('mousemove', e);
+			newEvent('mousemove', mousePos, e);
 		});
 		//mouse down
 		jQuery(document).mousedown(function (e) {
 			mousedown = [true, e.pageX, e.pageY];
-			newEvent('mousedown', e);
+			newEvent('mousedown', mousedown, e);
 		});
 		//mouse up
 		jQuery(document).mouseup(function (e) {
 			mousedown = [false, e.pageX, e.pageY];
-			newEvent('mouseup', e);
+			newEvent('mouseup', mousedown, e);
 		});
 		//window focus
 		jQuery(window).focus(function (e) {
+			active = true;
 			newEvent('focus', e);
 		});
 		//window blur
 		jQuery(window).blur(function (e) {
-			if (config.pauseOnBlur) {
-				active = false;
-			}
+			active = false;
 			newEvent('blur', e);
 		});
 
 		jQuery(window).keydown(function(e) {
-			newEvent('keydown', e);
+
+			//up
 			if (e.keyCode === 38) {
 				if(!depressedKeyCodes[38]) {
 					keyboard.axisCode += 1;
 					depressedKeyCodes[38] = true;
 				}
-				return false;
+				e.stopPropagation();
 			}
 			if (e.keyCode === 39) {
 				if(!depressedKeyCodes[39]) {
 					keyboard.axisCode += 10;
 					depressedKeyCodes[39] = true;
 				}
-				return false;
+				e.stopPropagation();
 			}
 			if (e.keyCode === 40) {
 				if(!depressedKeyCodes[40]) {
 					keyboard.axisCode += 100;
 					depressedKeyCodes[40] = true;
 				}
-				return false;
+				e.stopPropagation();
 			}
 			if (e.keyCode === 37) {
 				if(!depressedKeyCodes[37]) {
 					keyboard.axisCode += 1000;
 					depressedKeyCodes[37] = true;
 				}
-				return false;
+				e.stopPropagation();
 			}
 			if (e.keyCode === 27) {
 				keyboard.esc = true;
-				return false;
+				e.stopPropagation();
 			}
 			if (e.keyCode === 13) {
 				keyboard.enter = true;
-				return false;
+				e.stopPropagation();
 			}
+			newEvent('keydown', keyboard, e);
 		});
 
 		jQuery(window).keyup(function(e) {

@@ -3,23 +3,24 @@ RedLocomotive({
 	//Configuration
 	"baseUrl": "../../",
 	"spriteSheets": [
-		["box", "sprites/box.png", 100, 100]
+		["player", "sprites/player.png", 30, 30],
+		["map", "sprites/map.png", 800, 600]
 	]
 
 }, function(engine) {
 	engine.start();
 
 	//Create the main viewport
-	var mainView = engine.viewport.create('main', 'canvas', 800, 600);
+	engine.viewport.create('main', 'canvas', 800, 600);
 
-	//create a box
-	var box = engine.element.create('box', 'test', 100, 100, 1);
-	engine.animate.sequence(box, [[0, 0]]);
+	//create a map
+	engine.element.create('map', 'map', 0, 0, 2);
 
-	//create a number of random circles to
-	for (var i = 0; i < 100; i += 1) {
-		var circle = engine.element.create('circle' + engine.idGen(), 'test', engine.random(500), engine.random(350), 1);
-		engine.animate.sequence(circle, [[0, 0]]);
-	}
+	//create the player
+	var player = engine.element.create('player', 'player', 10, 10, 1);
+
+	engine.bind.key('ctrl + q', function(keys, combo){
+		console.log('quit?');
+	});
 
 });
