@@ -1,9 +1,16 @@
+/*!
+ * Red Locomotive Core Module
+ * http://robertwhurst.github.com/Red-Locomtive/
+ *
+ * Copyright 2011, Robert William Hurst
+ * Licenced under the BSD License.
+ * See license.txt
+ */
 RedLocomotive('core', function(engine, options) {
 
 	//create configuration
 	var config = jQuery.extend({
 		"showFPS": false,
-		"pauseOnBlur": false,
 		"fps": 60
 	}, options);
 
@@ -39,7 +46,7 @@ RedLocomotive('core', function(engine, options) {
 			//get the milliseconds per frame
 			var mspf = Math.floor(1000 / config.fps);
 
-			if (cycleDrift < 480) {
+			if (cycleDrift < 10) {
 
 				//count the amount of drift in milliseconds between frames
 				cycleDrift += Math.round(((coreLoopTime - lastCoreLoopTime) / mspf) * 10) / 10;
@@ -48,9 +55,6 @@ RedLocomotive('core', function(engine, options) {
 
 			//get the number of cycles for this loop
 			var clockCycles = Math.floor(cycleDrift);
-
-			//prevent runway cycles
-			clockCycles = clockCycles <= 30 ? clockCycles : 30;
 
 			//if there are cycles in this loop
 			if(clockCycles > 0) {
@@ -65,11 +69,8 @@ RedLocomotive('core', function(engine, options) {
 				for(var i = 0; i < clockCycles; i += 1) {
 					clock();
 				}
-
-				//draw the current frame if the cycle drift is less than 30
-				if(cycleDrift < 30) {
-					draw();
-				}
+				
+				draw();
 			}
 
 			//call the core loop hook
@@ -131,7 +132,6 @@ RedLocomotive('core', function(engine, options) {
 
 		jQuery(window).keydown(function(e) {
 
-			//up
 			if (e.keyCode === 38) {
 				if(!depressedKeyCodes[38]) {
 					keyboard.axisCode += 1;
@@ -537,21 +537,6 @@ RedLocomotive('core', function(engine, options) {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Draws the fps
-	 */
-	function fpsElement() {
-		if (!fpsElement) {
-			fpsElement = engine.text.create('FPS ELEMENT', 'FPS: ' + realFps, 16, 0, 16);
-		} else {
-			fpsElement.text = 'FPS: ' + realFps;
-		}
-	}
-
-	function fps() {
-		return realFps;
 	}
 
 	function newCallCounter(iterations, callback) {

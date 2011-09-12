@@ -1,3 +1,11 @@
+/*!
+ * Red Locomotive Sprites Module
+ * http://robertwhurst.github.com/Red-Locomtive/
+ *
+ * Copyright 2011, Robert William Hurst
+ * Licenced under the BSD License.
+ * See license.txt
+ */
 RedLocomotive('sprites', function(engine, options) {
     "use strict"
 
@@ -37,10 +45,10 @@ RedLocomotive('sprites', function(engine, options) {
 
 	        loadImage(url, function(image) {
 
-		        var canvas = engine.canvas.create(image[0].width, image[0].height, image[0]),
-		            sprites = engine.canvas.slice(canvas, width, height),
+		        var bitmap = engine.bitmap.create(image[0].width, image[0].height, image[0]),
+		            sprites = engine.bitmap.slice(bitmap, width, height),
 					spriteSheet = {
-						"canvas": canvas,
+						"bitmap": bitmap,
 						"sprites": sprites
 					};
 

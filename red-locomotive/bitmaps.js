@@ -1,23 +1,31 @@
-RedLocomotive('canvas', function(){
+/*!
+ * Red Locomotive Canvas Module
+ * http://robertwhurst.github.com/Red-Locomtive/
+ *
+ * Copyright 2011, Robert William Hurst
+ * Licenced under the BSD License.
+ * See license.txt
+ */
+RedLocomotive('bitmaps', function(){
 
 	/**
-	 * newCanvas - Creates a new Red Locomotive canvas width dimensions and image data.
-	 * @param width {int} The canvas width
-	 * @param height {int} The canvas height
-	 * @param image {object} An image or canvas object to copy from
+	 * newBitmap - Creates a new Red Locomotive bitmap width dimensions and image data.
+	 * @param width {int} The bitmap width
+	 * @param height {int} The bitmap height
+	 * @param image {object} An image or bitmap object to copy from
 	 * @param dX {int} The x position to draw the image data from
 	 * @param dY {int} The y position to draw the image data from
 	 */
-	function newCanvas(width, height, image, sX, sY, sW, sH, dX, dY, dW, dH) {
+	function newBitmap(width, height, image, sX, sY, sW, sH, dX, dY, dW, dH) {
 
-		var canvasEle = jQuery('<canvas></canvas>'),
-			context = canvasEle[0].getContext('2d');
+		var canvas = jQuery('<canvas></canvas>'),
+			context = canvas[0].getContext('2d');
 
 		if(width) {
-			canvasEle[0].width = width;
+			canvas[0].width = width;
 		}
 		if(height) {
-			canvasEle[0].height = height;
+			canvas[0].height = height;
 		}
 
 		if(image) {
@@ -36,27 +44,27 @@ RedLocomotive('canvas', function(){
 		}
 
 		return {
-			"canvas": canvasEle,
+			"canvas": canvas,
 			"context": context
 		};
 
 	}
 
 	/**
-	 * trim - Trims white space margins from a canvas
-	 * @param canvas {object} A Red Locomotive canvas
+	 * trim - Trims white space margins from a bitmap
+	 * @param bitmap {object} A Red Locomotive bitmap
 	 */
-	function trim(canvas) {
+	function trim(bitmap) {
 
-		var pixels = dump(canvas),
+		var pixels = dump(bitmap),
 			topLeft, topRight,
 			bottomLeft;
 
 		for(var pI = 0; pI < pixels.length; pI += 1) {
 
 			var alpha = pixels[pI][3],
-				y = Math.floor(pI / canvas.canvas[0].width),
-				x = pI - (canvas.canvas[0].width * y);
+				y = Math.floor(pI / bitmap.canvas[0].width),
+				x = pI - (bitmap.canvas[0].width * y);
 
 			//if the pixel is transparent
 			if(alpha >= 255) {
@@ -90,27 +98,27 @@ RedLocomotive('canvas', function(){
 		var width = topRight[0] - topLeft[0],
 			height = bottomLeft[1] - topLeft[1];
 
-		//apply the trimmed data to a new canvas and return it
-		return newCanvas(width, height, canvas.canvas[0], topLeft[0], topLeft[1], width, height, 0, 0, width, height);
+		//apply the trimmed data to a new bitmap and return it
+		return newBitmap(width, height, bitmap.canvas[0], topLeft[0], topLeft[1], width, height, 0, 0, width, height);
 
 	}
 
 	/**
-	 * slice - Chops a canvas into bits of a given size starting from the top left.
-	 * @param canvas {object} A Red Locomotive canvas
+	 * slice - Chops a bitmap into bits of a given size starting from the top left.
+	 * @param bitmap {object} A Red Locomotive bitmap
 	 * @param width {int} The width of each slice
 	 * @param height {int} The height of each slice
 	 */
-	function slice(canvas, width, height) {
+	function slice(bitmap, width, height) {
 
 		//calculate the rows and columns
-		var rows = Math.floor(canvas.canvas[0].width / width),
-			columns = Math.floor(canvas.canvas[0].height / height),
-			canvases = [];
+		var rows = Math.floor(bitmap.canvas[0].width / width),
+			columns = Math.floor(bitmap.canvas[0].height / height),
+			bitmaps = [];
 
 		//get each piece
 		for (var rI = 0; rI < rows; rI += 1) {
-			if(!canvases[rI]) { canvases[rI] = []; }
+			if(!bitmaps[rI]) { bitmaps[rI] = []; }
 
 			for (var cI = 0; cI < columns; cI += 1) {
 
@@ -118,20 +126,20 @@ RedLocomotive('canvas', function(){
 					y = cI * height;
 
 				//apply the image
-				canvases[rI][cI] = newCanvas(width, height, canvas.canvas[0], x, y, width, height, 0, 0, width, height);
+				bitmaps[rI][cI] = newBitmap(width, height, bitmap.canvas[0], x, y, width, height, 0, 0, width, height);
 
 			}
 		}
 
-		return canvases;
+		return bitmaps;
 	}
 
 	/**
 	 * dump - Dumps all the pixel data grouped by pixel
-	 * @param canvas {object} A Red Locomotive canvas
+	 * @param bitmap {object} A Red Locomotive bitmap
 	 */
-	function dump(canvas) {
-		var imageData = canvas.context.getImageData(0, 0, canvas.canvas[0].width, canvas.canvas[0].height).data,
+	function dump(bitmap) {
+		var imageData = bitmap.context.getImageData(0, 0, bitmap.canvas[0].width, bitmap.canvas[0].height).data,
 			pixels = [];
 
 		for(var pI = 0; pI < imageData.length; pI += 4) {
@@ -149,16 +157,16 @@ RedLocomotive('canvas', function(){
 	}
 
 	/**
-	 * isBlank - Checks to the if a Red Locomotive canvas is blank
-	 * @param canvas {object} A Red Locomotive canvas
+	 * isBlank - Checks to the if a Red Locomotive bitmap is blank
+	 * @param bitmap {object} A Red Locomotive bitmap
 	 */
-	function isBlank(canvas) {
+	function isBlank(bitmap) {
 
-		//trim the canvas
-		canvas = trim(canvas);
+		//trim the bitmap
+		bitmap = trim(bitmap);
 
 		//dump the pixels
-		var pixels = dump(canvas);
+		var pixels = dump(bitmap);
 
 		//loop through the pixels looking for a translucent or opaque pixel
 		for(var pI = 0; pI < pixels; pI += 1) {
@@ -174,9 +182,10 @@ RedLocomotive('canvas', function(){
 
 	}
 
+	console.log('its all good');
 	return {
-		"canvas": {
-			"create": newCanvas,
+		"bitmap": {
+			"create": newBitmap,
 			"trim": trim,
 			"slice": slice,
 			"dump": dump,

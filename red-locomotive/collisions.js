@@ -1,3 +1,11 @@
+/*!
+ * Red Locomotive Collisions Module
+ * http://robertwhurst.github.com/Red-Locomtive/
+ *
+ * Copyright 2011, Robert William Hurst
+ * Licenced under the BSD License.
+ * See license.txt
+ */
 RedLocomotive('collisions', function(engine, options) {
 
 	var collisions = {};
@@ -45,12 +53,12 @@ RedLocomotive('collisions', function(engine, options) {
 						eCR = collisions[element.name][1] || 0;
 
 					//draw the each element's collision mask to a canvas and check for remaining pixels
-					var collision = engine.canvas.create(element.width, element.height, otherElement.sprites[oECC, oECR]);
+					var collision = engine.bitmap.create(element.width, element.height, otherElement.sprites[oECC, oECR]);
 					collision.context.globalCompositeOperation = 'source-in';
 					collision.context.drawImage(element.sprites[eCC, eCR], element.x + otherElement.x, element.y + otherElement.y);
 
 					//check to see if the canvas is blank
-					if(!engine.canvas.isBlank(collision)) {
+					if(!engine.bitmap.isBlank(collision)) {
 						if(!activeCollisions) {
 							activeCollisions = {};
 						}
@@ -68,8 +76,10 @@ RedLocomotive('collisions', function(engine, options) {
 
 	//return the api
 	return {
-		"setMask": setCollisionMask,
-		"check": checkForCollision
+		"collision": {
+			"setMask": setCollisionMask,
+			"check": checkForCollision
+		}
 	}
 
 });

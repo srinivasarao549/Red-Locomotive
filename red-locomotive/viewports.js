@@ -1,3 +1,11 @@
+/*!
+ * Red Locomotive Viewports Module
+ * http://robertwhurst.github.com/Red-Locomtive/
+ *
+ * Copyright 2011, Robert William Hurst
+ * Licenced under the BSD License.
+ * See license.txt
+ */
 RedLocomotive('viewports', function(engine, options){
 
 	var viewports = {},
@@ -42,13 +50,13 @@ RedLocomotive('viewports', function(engine, options){
 				}
 			};
 			viewports[viewportName] = viewport;
-
-			canvas.mousemove(function (e) {
+			
+			canvas.mousemove(function (event) {
 
 				var realWidth = canvas.width(),
 					realHeight = canvas.height(),
-					realX = e.pageX - canvas[0].offsetLeft,
-					realY = e.pageY - canvas[0].offsetTop,
+					realX = event.pageX - canvas[0].offsetLeft,
+					realY = event.pageY - canvas[0].offsetTop,
 					viewportWidth = canvas[0].width,
 					viewportHeight = canvas[0].height;
 
@@ -57,8 +65,6 @@ RedLocomotive('viewports', function(engine, options){
 
 			});
 		}
-
-
 
 		if (!primaryViewport) {
 			primaryViewport = viewports[viewportName];

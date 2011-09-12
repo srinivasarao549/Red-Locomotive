@@ -1,3 +1,11 @@
+/*!
+ * Red Locomotive Elements Module
+ * http://robertwhurst.github.com/Red-Locomtive/
+ *
+ * Copyright 2011, Robert William Hurst
+ * Licenced under the BSD License.
+ * See license.txt
+ */
 RedLocomotive("elements", function(engine, options) {
 
     var elements = {},
@@ -375,7 +383,7 @@ RedLocomotive("elements", function(engine, options) {
 	}
 
 	/**
-	 * Binds the arrow keys to a character
+	 * Binds the arrow keys to an element
 	 * @param character
 	 * @param distance
 	 */
@@ -439,62 +447,6 @@ RedLocomotive("elements", function(engine, options) {
 		}
 	}
 
-	/**
-	 * New Text Element
-	 * @param textElementName
-	 * @param text
-	 * @param size
-	 * @param x
-	 * @param y
-	 * @param w
-	 */
-	function newTextElement(textElementName, text, size, x, y, w) {
-
-		if(textElementName !== 'all') {
-			textElements[textElementName] = {
-				"x": x,
-				"y": y,
-				"width": w || 0,
-				"text": text || '',
-				"size": size || 16,
-				"font": '' || 'Arial, Helvetica'
-			};
-			return textElements[textElementName];
-		}
-
-		return false;
-
-	}
-
-	/**
-	 * Get Text Element or Text Elements
-	 * @param textElementName
-	 */
-	function getTextElement(textElementName) {
-
-		if (textElementName === "all") {
-			return textElements;
-		} else if (textElements[textElementName]) {
-			return textElements[textElementName];
-		}
-
-		return false;
-	}
-
-	/**
-	 * Remove Text Element
-	 * @param textElementName
-	 */
-	function removeTextElement(textElementName) {
-
-		if (textElements[textElementName]) {
-			delete textElements[textElementName];
-			return true;
-		}
-
-		return false
-	}
-
     return {
         "element": {
             "create": newElement,
@@ -511,11 +463,6 @@ RedLocomotive("elements", function(engine, options) {
 			"onLeft": onLeft,
 			"onRight": onRight,
 			"bindToArrowKeys": bindToArrowKeys
-	    },
-		"text": {
-			"create": newTextElement,
-			"get": getTextElement,
-			"remove": removeTextElement
-		}
+	    }
     }
 });

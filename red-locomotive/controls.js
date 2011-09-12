@@ -7,7 +7,7 @@
  * See license.txt
  */
 
-RedLocomotive('controls', function () {
+RedLocomotive('controls', function (engine, options) {
 
 	var keys = {
 			"backspace": 8,
@@ -55,25 +55,11 @@ RedLocomotive('controls', function () {
 			"closebracket": 221,
 			"singlequote": 222
 		},
-		mouse = {
-			"x": -1,
-			"y": -1,
-			"leftButton": {
-				"pressed": false,
-				"x": -1,
-				"y": -1
-			},
-			"rightButton": {
-				"pressed": false,
-				"x": -1,
-				"y": -1
-			}
-		},
 		activeKeys = [],
-		spentKeys = [],
 		keyBindings = [];
 
-	jQuery(document).keydown('*', function(event) {
+	
+	jQuery(document).keydown(function(event) {
 
 		for (var key in keys) {
 			if(keys.hasOwnProperty(key) && event.keyCode === keys[key]) {
@@ -83,88 +69,88 @@ RedLocomotive('controls', function () {
 			}
 		}
 
-		checkBindedKeys();
-
+		return checkBindedKeys();
+		
 	});
 
-	jQuery(document).keyup('*', function (event) {
+	jQuery(document).keyup(function (event) {
 
 		for(var key in keys) {
 			if(keys.hasOwnProperty(key) && event.keyCode === keys[key]) {
 
-				var iAK = activeKeys.indexOf(key),
-					iSK = spentKeys.indexOf(key);
+				var iAK = activeKeys.indexOf(key);
 
 				if(iAK > -1) {
 					activeKeys.splice(iAK, 1);
 				}
-
-				if(iSK > -1) {
-					spentKeys.splice(iSK, 1);
-				}
-
 			}
 		}
-
-	});
-
-	jQuery(document).mousedown(function(){
-
-	});
-
-	jQuery(document).mouseup(function(){
-
 	});
 
 	function checkBindedKeys() {
 
-		//loop through the key bindings.
-		for(var iB = 0; iB < keyBindings.length; iB += 1) {
-			var KeyBinding = keyBindings[iB],
-				keyBindingActive = true;
+		if(activeKeys < 1) {
+			return true;
+		}
 
-			//loop through the current key binding keys.
-			for(var iKB = 0; iKB < KeyBinding.keys.length;  iKB += 1) {
-				var key = KeyBinding.keys[iKB],
-					keyActive = false,
-					keySpent = false;
+		var activeKeyBindings = [],
+			spentKeys = [];
 
-				//loop through the spent keys and findout if the current key is usable.
-				for(var iSK = 0; iSK < spentKeys.length; iSK += 1) {
-					if(key === spentKeys[iSK]) {
-						keySpent = true;
-					}
-				}
+		//loop through the key binding groups.
+		for(var iKCL = keyBindings.length; iKCL > -1; iKCL -= 1) {
+			if(keyBindings[iKCL]) {
+				var KeyBindingGroup = keyBindings[iKCL];
 
-				//if the key has not been spent in a binding execution.
-				if(!keySpent) {
+				//loop through the key bindings.
+				for(var iB = 0; iB < KeyBindingGroup.length; iB += 1) {
+					var KeyBinding = KeyBindingGroup[iB],
+						keyBindingActive = true;
 
-					//loop through the active keys and findout if the current key is pressed.
-					for(var iAK = 0; iAK < activeKeys.length; iAK += 1) {
-						if(key === activeKeys[iAK]) {
-							keyActive = true;
-							break;
+					//loop through the current key binding keys.
+					for(var iKB = 0; iKB < KeyBinding.keys.length;  iKB += 1) {
+						var key = KeyBinding.keys[iKB];
+
+						//loop through the active keys and findout if the current key is pressed.
+						if(activeKeys.indexOf(key) < 0) {
+							keyBindingActive = false;
 						}
 					}
-				}
 
-				//if the key is not pressed break out of the current binding.
-				if(!keyActive) {
-					keyBindingActive = false;
-				}
-			}
-
-			if(keyBindingActive) {
-				//fire the callback
-				KeyBinding.callback(KeyBinding.keys, KeyBinding.keyCombo);
-
-				for(var iKB = 0; iKB < KeyBinding.keys.length;  iKB += 1) {
-					spentKeys.push(KeyBinding.keys[iKB]);
+					if(keyBindingActive) {
+						activeKeyBindings.push(KeyBinding);
+					}
 				}
 			}
 		}
 
+		for (var iAKB = 0; iAKB < activeKeyBindings.length; iAKB += 1) {
+			var activeKeyBinding = activeKeyBindings[iAKB],
+				keySpent = false;
 
+			for(var iK = 0; iK < activeKeyBinding.keys.length; iK += 1) {
+				if(spentKeys.indexOf(key) > -1) {
+					keySpent = true;
+					break;
+				}
+			}
+
+			if(!keySpent) {
+				//fire the callback
+				activeKeyBinding.callback(activeKeyBinding.keys, activeKeyBinding.keyCombo);
+
+				for(var iK = 0; iK < activeKeyBinding.keys.length; iK += 1) {
+					if(spentKeys.indexOf(key) < 0) {
+						spentKeys.push(key);
+					}
+				}
+			}
+		}
+
+		if(spentKeys.length) {
+			return false;
+		}
+
+		return true;
 	}
 
 	function bindKey(keyCombo, callback) {
@@ -176,26 +162,91 @@ RedLocomotive('controls', function () {
 			var keys = bindSets[i].split('+');
 
 			if(keys.length) {
-				keyBindings.push({
+				if(!keyBindings[keys.length]) { keyBindings[keys.length] = []; }
+
+				keyBindings[keys.length].push({
 					"callback": callback,
 					"keyCombo": bindSets[i],
-					"keys": keys,
-					"spent": false
+					"keys": keys
 				});
 			}
 
 		}
 	}
 
-	function bindAxis(up, down, left, right, callback) {
+	function bindAxis(up, down, left, right, distance, callback) {
 
+	}
 
+	function getActiveKeys() {
+		return activeKeys;
+	}
+
+	function onHover(element, viewport, callback) {
+		viewport.node.mouseover(function(){
+
+			//the the viewport's cursor x and y
+			var x = viewport.cursor.x,
+				y = viewport.cursor.y;
+
+			if(
+				//the x axis
+				(x > element.x && x < element.x + element.width) &&
+				(y > element.y && x < element.y + element.height) &&
+				typeof callback === 'function'
+			) {
+				callback();
+			}
+		});
+
+	}
+
+	function onClickBase(element, viewport, callback, button) {
+		viewport.node.click(function(event){
+
+			//the the viewport's cursor x and y
+			var x = viewport.cursor.x,
+				y = viewport.cursor.y;
+
+			if(
+				typeof callback === 'function' &&
+				(x > element.x && x < element.x + element.width) &&
+				(y > element.y && x < element.y + element.height) &&
+				(!button || button === event.which)
+			) {
+				callback();
+			}
+
+		});
+	}
+
+	function onClick(element, viewport, callback) {
+		onClickBase(element, viewport, callback, false);
+	}
+
+	function onLeftClick(element, viewport, callback) {
+		onClickBase(element, viewport, callback, 1);
+	}
+
+	function onMiddleClick(element, viewport, callback) {
+		onClickBase(element, viewport, callback, 2);
+	}
+
+	function onRightClick(element, viewport, callback) {
+		onClickBase(element, viewport, callback, 3);
 	}
 
 	return {
 		"bind": {
-			"key": bindKey
-		}
+			"key": bindKey,
+			"axis": bindAxis,
+			"click": onClick,
+			"leftClick": onLeftClick,
+			"middleClick": onMiddleClick,
+			"rightClick": onRightClick,
+			"hover": onHover
+		},
+		"activeKeys": getActiveKeys
 	}
 
 });

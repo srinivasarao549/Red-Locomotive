@@ -1,3 +1,11 @@
+/*!
+ * Red Locomotive Paths Module
+ * http://robertwhurst.github.com/Red-Locomtive/
+ *
+ * Copyright 2011, Robert William Hurst
+ * Licenced under the BSD License.
+ * See license.txt
+ */
 RedLocomotive('paths', function (engine, options) {
 
 	function followPath(element, pathArray, frames, PositioningMethod, callback) {
