@@ -35,7 +35,8 @@ RedLocomotive("elements", function(engine, options) {
 				"z": z || 0,
 				"width": spriteSheet.sprites[0][0].canvas[0].width,
 				"height": spriteSheet.sprites[0][0].canvas[0].height,
-				"spritePos": [0, 0]
+				"spritePos": [0, 0],
+				"colMaskPos": [0, 0]
 			};
 
 			//save the element
@@ -77,6 +78,10 @@ RedLocomotive("elements", function(engine, options) {
 		}
 
 		return false
+	}
+
+	function setCollisionMask(element, x, y) {
+		element.colMaskPos = [x, y];
 	}
 
 	/**
@@ -272,8 +277,6 @@ RedLocomotive("elements", function(engine, options) {
 				idleTimer.clear();
 			}
 
-			console.log(x, y);
-
 			var _x = x < 0 ? -x : x,
 				_y = y < 0 ? -y : y,
 				mH = _x >= _y;
@@ -453,7 +456,8 @@ RedLocomotive("elements", function(engine, options) {
             "get": getElement,
 			"remove": removeElement,
 			"move": move,
-			"keepIn": keepIn
+			"keepIn": keepIn,
+	        "collisionMask": setCollisionMask
         },
 	    "character": {
 			"create": newCharacter,

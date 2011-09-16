@@ -155,15 +155,20 @@ RedLocomotive('controls', function (engine, options) {
 
 	function bindKey(keyCombo, callback) {
 
+		//create an array of combos from the first argument
 		var bindSets = keyCombo.toLowerCase().replace(/\s/g, '').split(',');
 
+		//create a binding for each key combo
 		for(var i = 0; i < bindSets.length; i += 1) {
 
+			//split up the keys
 			var keys = bindSets[i].split('+');
 
+			//if there are keys in the current combo
 			if(keys.length) {
 				if(!keyBindings[keys.length]) { keyBindings[keys.length] = []; }
 
+				//save the binding sorted by length
 				keyBindings[keys.length].push({
 					"callback": callback,
 					"keyCombo": bindSets[i],
@@ -175,65 +180,173 @@ RedLocomotive('controls', function (engine, options) {
 	}
 
 	function bindAxis(up, down, left, right, distance, callback) {
+		var axis = [0, 0],
+			lastAxis = [false, false];
 
+		if(typeof callback !== 'function') {
+			return;
+		}
+
+		//up
+		bindKey(up, function () {
+			axis[1] = -1;
+		});
+
+		//down
+		bindKey(down, function () {
+			axis[1] = 1;
+		});
+
+		//left
+		bindKey(left, function () {
+			axis[0] = -1;
+		});
+
+		//right
+		bindKey(right, function () {
+			axis[0] = 1;
+		});
+
+		engine.every(function(){
+			var degree;
+
+			if (
+				(axis[0] !== lastAxis[0]) || (axis[1] !== lastAxis[1])
+			) {
+
+				//up
+				if(axis[0] === 0 && axis[1] === -1) {
+					degree = 0;
+				}
+
+				//up left
+				else if(axis[0] === 1 && axis[1] === -1) {
+					degree = 45;
+				}
+
+				//left
+				else if(axis[0] === 1 && axis[1] === 0) {
+					degree = 90;
+				}
+
+				//left down
+				else if(axis[0] === 1 && axis[1] === 1) {
+					degree = 135;
+				}
+
+				//down
+				else if(axis[0] === 0 && axis[1] === 1) {
+					degree = 180;
+				}
+
+				//down right
+				else if(axis[0] === -1 && axis[1] === 1) {
+					degree = 225;
+				}
+
+				//right
+				else if(axis[0] === -1 && axis[1] === 0) {
+					degree = 270;
+				}
+
+				//run the callback
+				callback(engine.coords(degree, distance));
+			}
+		});
 	}
 
 	function getActiveKeys() {
 		return activeKeys;
 	}
 
-	function onHover(element, viewport, callback) {
-		viewport.node.mouseover(function(){
+	function onHoverBase(element, viewport, callback, maxAlpha) {
+		viewport.node.mouseover(function(event){
 
 			//the the viewport's cursor x and y
 			var x = viewport.cursor.x,
-				y = viewport.cursor.y;
+				y = viewport.cursor.y,
+				alpha = 0;
+
+			if(maxAlpha) {
+				alpha = engine.bitmap.pointData(element, x, y)[3];
+			}
 
 			if(
 				//the x axis
 				(x > element.x && x < element.x + element.width) &&
 				(y > element.y && x < element.y + element.height) &&
-				typeof callback === 'function'
+				typeof callback === 'function' &&
+				(!maxAlpha || alpha <= maxAlpha)
 			) {
-				callback();
+				callback(event);
 			}
 		});
 
 	}
 
-	function onClickBase(element, viewport, callback, button) {
+	function onHover(element, viewport, callback) {
+		onHoverBase(element, viewport, callback, false);
+	}
+
+	function onAlphaHover(element, viewport, callback) {
+		onClickBase(element, viewport, callback, true);
+	}
+
+	function onClickBase(element, viewport, callback, button, maxAlpha) {
 		viewport.node.click(function(event){
 
 			//the the viewport's cursor x and y
 			var x = viewport.cursor.x,
-				y = viewport.cursor.y;
+				y = viewport.cursor.y,
+				alpha = 0;
 
+			//get the alpha
+			if(maxAlpha) { alpha = engine.bitmap.pointData(element, x, y)[3]; }
+
+			//run the callback if all event requirements have been met
 			if(
 				typeof callback === 'function' &&
 				(x > element.x && x < element.x + element.width) &&
 				(y > element.y && x < element.y + element.height) &&
-				(!button || button === event.which)
+				(!button || button === event.which) &&
+				(!maxAlpha || alpha <= maxAlpha)
 			) {
-				callback();
+				callback(event);
 			}
 
 		});
 	}
 
 	function onClick(element, viewport, callback) {
-		onClickBase(element, viewport, callback, false);
+		onClickBase(element, viewport, callback, false, false);
 	}
 
 	function onLeftClick(element, viewport, callback) {
-		onClickBase(element, viewport, callback, 1);
+		onClickBase(element, viewport, callback, 1, false);
 	}
 
 	function onMiddleClick(element, viewport, callback) {
-		onClickBase(element, viewport, callback, 2);
+		onClickBase(element, viewport, callback, 2, false);
 	}
 
 	function onRightClick(element, viewport, callback) {
-		onClickBase(element, viewport, callback, 3);
+		onClickBase(element, viewport, callback, 3, false);
+	}
+
+	function onAlphaClick(element, viewport, alpha, callback) {
+		onClickBase(element, viewport, callback, false, alpha);
+	}
+
+	function onAlphaLeftClick(element, viewport, alpha, callback) {
+		onClickBase(element, viewport, callback, 1, alpha);
+	}
+
+	function onAlphaMiddleClick(element, viewport, alpha, callback) {
+		onClickBase(element, viewport, callback, 2, alpha);
+	}
+
+	function onAlphaRightClick(element, viewport, alpha, callback) {
+		onClickBase(element, viewport, callback, 3, alpha);
 	}
 
 	return {
@@ -244,7 +357,14 @@ RedLocomotive('controls', function (engine, options) {
 			"leftClick": onLeftClick,
 			"middleClick": onMiddleClick,
 			"rightClick": onRightClick,
-			"hover": onHover
+			"hover": onHover,
+			"alpha": {
+				"click": onAlphaClick,
+				"leftClick": onAlphaLeftClick,
+				"middleClick": onAlphaMiddleClick,
+				"rightClick": onAlphaRightClick,
+				"hover": onAlphaHover
+			}
 		},
 		"activeKeys": getActiveKeys
 	}

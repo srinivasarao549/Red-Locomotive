@@ -16,13 +16,6 @@ RedLocomotive('core', function(engine, options) {
 
 	//get the canvas
 	var lastId = 0,
-		mousePos = [0, 0],
-		mousedown = [false, 0, 0],
-		keyboard = {
-			"axisCode": 0,
-			"enter": false,
-			"esc": false
-		},
 		active = false,
 		frameCount = 0,
 		realFps = '?',
@@ -100,109 +93,14 @@ RedLocomotive('core', function(engine, options) {
 
 	}, 1000);
 
-	//events
-	(function domEventHooks() {
-		var depressedKeyCodes = [];
-
-		//mouse position
-		jQuery(document).mousemove(function (e) {
-			mousePos = [e.pageX , e.pageY];
-			newEvent('mousemove', mousePos, e);
-		});
-		//mouse down
-		jQuery(document).mousedown(function (e) {
-			mousedown = [true, e.pageX, e.pageY];
-			newEvent('mousedown', mousedown, e);
-		});
-		//mouse up
-		jQuery(document).mouseup(function (e) {
-			mousedown = [false, e.pageX, e.pageY];
-			newEvent('mouseup', mousedown, e);
-		});
-		//window focus
-		jQuery(window).focus(function (e) {
-			active = true;
-			newEvent('focus', e);
-		});
-		//window blur
-		jQuery(window).blur(function (e) {
-			active = false;
-			newEvent('blur', e);
-		});
-
-		jQuery(window).keydown(function(e) {
-
-			if (e.keyCode === 38) {
-				if(!depressedKeyCodes[38]) {
-					keyboard.axisCode += 1;
-					depressedKeyCodes[38] = true;
-				}
-				e.stopPropagation();
-			}
-			if (e.keyCode === 39) {
-				if(!depressedKeyCodes[39]) {
-					keyboard.axisCode += 10;
-					depressedKeyCodes[39] = true;
-				}
-				e.stopPropagation();
-			}
-			if (e.keyCode === 40) {
-				if(!depressedKeyCodes[40]) {
-					keyboard.axisCode += 100;
-					depressedKeyCodes[40] = true;
-				}
-				e.stopPropagation();
-			}
-			if (e.keyCode === 37) {
-				if(!depressedKeyCodes[37]) {
-					keyboard.axisCode += 1000;
-					depressedKeyCodes[37] = true;
-				}
-				e.stopPropagation();
-			}
-			if (e.keyCode === 27) {
-				keyboard.esc = true;
-				e.stopPropagation();
-			}
-			if (e.keyCode === 13) {
-				keyboard.enter = true;
-				e.stopPropagation();
-			}
-			newEvent('keydown', keyboard, e);
-		});
-
-		jQuery(window).keyup(function(e) {
-			newEvent('keyup', e);
-			if (e.keyCode === 38) {
-				keyboard.axisCode -= 1;
-				depressedKeyCodes[38] = false;
-				return false;
-			}
-			if (e.keyCode === 39) {
-				keyboard.axisCode -= 10;
-				depressedKeyCodes[39] = false;
-				return false;
-			}
-			if (e.keyCode === 40) {
-				keyboard.axisCode -= 100;
-				depressedKeyCodes[40] = false;
-				return false;
-			}
-			if (e.keyCode === 37) {
-				keyboard.axisCode -= 1000;
-				depressedKeyCodes[37] = false;
-				return false;
-			}
-			if (e.keyCode === 27) {
-				keyboard.esc = false;
-				return false;
-			}
-			if (e.keyCode === 13) {
-				keyboard.enter = false;
-				return false;
-			}
-		});
-	})();
+	//window focus
+	jQuery(window).focus(function (e) {
+		active = true;
+	});
+	//window blur
+	jQuery(window).blur(function (e) {
+		active = false;
+	});
 
 	function random(limit) {
 		return Math.floor(Math.random() * (limit || 100)) || 0;
@@ -645,18 +543,6 @@ RedLocomotive('core', function(engine, options) {
 		}
 	}
 
-	function getMousePos() {
-		return mousePos;
-	}
-
-	function getMouseDown() {
-		return mousedown;
-	}
-
-	function getKeyboard() {
-		return keyboard;
-	}
-
 	function loopIsActive() {
 		return active;
 	}
@@ -673,9 +559,6 @@ RedLocomotive('core', function(engine, options) {
 
 	//return the core api
 	return {
-		"mousePosition": getMousePos,
-		"mouseDown": getMouseDown,
-		"keyboard": getKeyboard,
 		"loopIsActive": loopIsActive,
 		"callCounter": newCallCounter,
 		"pause": pause,

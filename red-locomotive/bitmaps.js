@@ -182,14 +182,27 @@ RedLocomotive('bitmaps', function(){
 
 	}
 
-	console.log('its all good');
+	function getPointData(element, x, y) {
+		if(x >= 0 && y >= 0 && x < element.width && y < element.width){
+
+			var collisionMaskBitmap = element.spriteSheet.sprites[element.collisionMask[0]][element.collisionMask[1]],
+				collisionMaskPixelData = engine.bitmap.dump(collisionMaskBitmap),
+				relativeX = x - element.x,
+				relativeY = y - element.y,
+				currentPixel = relativeX + (relativeY * element.width);
+
+			return collisionMaskPixelData[currentPixel];
+		}
+	}
+
 	return {
 		"bitmap": {
 			"create": newBitmap,
 			"trim": trim,
 			"slice": slice,
 			"dump": dump,
-			"isBlank": isBlank
+			"isBlank": isBlank,
+			"pointData": getPointData
 		}
 	}
 });
