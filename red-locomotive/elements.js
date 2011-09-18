@@ -18,8 +18,12 @@ RedLocomotive("elements", function(engine, options) {
 	 * @param x
 	 * @param y
 	 * @param z
+	 * @param sPC
+	 * @param sPR
+	 * @param cMC
+	 * @param cMR
 	 */
-    function newElement(elementName, spriteSheet, x, y, z) {
+    function newElement(elementName, spriteSheet, x, y, z, sPC, sPR, cMC, cMR) {
 		
 		if(elementName !== 'all') {
 
@@ -35,8 +39,8 @@ RedLocomotive("elements", function(engine, options) {
 				"z": z || 0,
 				"width": spriteSheet.sprites[0][0].canvas[0].width,
 				"height": spriteSheet.sprites[0][0].canvas[0].height,
-				"spritePos": [0, 0],
-				"colMaskPos": [0, 0]
+				"spritePos": [sPC || 0, sPR || 0],
+				"colMaskPos": [cMC || sPC || 0, cMR || sPR || 0]
 			};
 
 			//save the element
@@ -70,6 +74,10 @@ RedLocomotive("elements", function(engine, options) {
 
 		if(elementName.name){
 			elementName = elementName.name;
+		}
+
+		if(elementName === 'all') {
+			elements = {};
 		}
 
 		if (elements[elementName]) {

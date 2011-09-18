@@ -17,62 +17,73 @@ RedLocomotive('viewports', function(engine, options){
 	 * @param selector
 	 * @param width
 	 * @param height
+	 * @param fillStyle
 	 */
-	function newViewport(viewportName, selector, width, height, x, y) {
+	function newViewport(viewportName, selector, width, height, x, y, fillStyle) {
 
-		if (viewportName === 'all') {
-			throw new Error('Viewport name can not be reserved word "all".');
-		}
+	if (viewportName === 'all') {
+		throw new Error('Viewport name can not be reserved word "all".');
+	}
 
-		//get the canvas
-		var canvas = jQuery(selector),
-			context = canvas[0].getContext('2d');
+	//get the canvas
+	var canvas = jQuery(selector);
 
-		if(context.mozImageSmoothingEnabled) {
-			context.mozImageSmoothingEnabled = false;
-		}
+	//throw error if jquery can't get a canvas element
+	if (typeof canvas[0].getContext === "undefined") {
+		throw Error('Can not create viewport "' + viewportName + '". Selector does not match any canvas elements in the DOM.');
+	}
 
-		if (viewportName && canvas[0].tagName === "CANVAS") {
+	//get the context
+	var context = canvas[0].getContext('2d');
 
-			canvas[0].width = width || 800;
-			canvas[0].height = height || 600;
+	//disable image smoothing
+	if (context.mozImageSmoothingEnabled) {
+		context.mozImageSmoothingEnabled = false;
+	}
 
-			var viewport = {
-				"node": canvas,
-				"context": context,
-				"x": x || 0,
-				"y": y || 0,
-				"width": canvas[0].width,
-				"height": canvas[0].height,
-				"cursor": {
-					"x": 0,
-					"y": 0
-				}
-			};
-			viewports[viewportName] = viewport;
-			
-			canvas.mousemove(function (event) {
+	if (viewportName && canvas[0].tagName === "CANVAS") {
 
-				var realWidth = canvas.width(),
+		canvas[0].width = width || 800;
+		canvas[0].height = height || 600;
+
+		var viewport = {
+			"node": canvas,
+			"context": context,
+			"x": x || 0,
+			"y": y || 0,
+			"width": canvas[0].width,
+			"height": canvas[0].height,
+			"cursor": {
+				"x": 0,
+				"y": 0
+			},
+			"fillStyle": fillStyle
+		};
+		
+		viewports[viewportName] = viewport;
+
+		canvas.mousemove(function (event) {
+
+			var realWidth = canvas.width(),
 					realHeight = canvas.height(),
 					realX = event.pageX - canvas[0].offsetLeft,
 					realY = event.pageY - canvas[0].offsetTop,
 					viewportWidth = canvas[0].width,
 					viewportHeight = canvas[0].height;
 
-				viewport.cursor.x = Math.round(realX * viewportWidth / realWidth);
-				viewport.cursor.y = Math.round(realY * viewportHeight / realHeight);
+			viewport.cursor.x = Math.round(realX * viewportWidth / realWidth);
+			viewport.cursor.y = Math.round(realY * viewportHeight / realHeight);
 
-			});
-		}
-
-		if (!primaryViewport) {
-			primaryViewport = viewports[viewportName];
-		}
-
-		engine.event('createViewport', viewports[viewportName]);
-		return viewports[viewportName];
+		});
 	}
+
+	if (!primaryViewport) {
+		primaryViewport = viewports[viewportName];
+	}
+
+	engine.event('createViewport', viewports[viewportName]);
+	return viewports[viewportName];
+}
 
 	/**
 	 * Retreves a viewport by name

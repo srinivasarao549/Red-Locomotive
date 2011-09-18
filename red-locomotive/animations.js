@@ -3,9 +3,10 @@ RedLocomotive('animations', function(engine, options) {
 	/**
 	 * Move any object that contains X and Y coordinates
 	 * @param element
-	 * @param degree
-	 * @param distance
+	 * @param endX
+	 * @param endY
 	 * @param frames
+	 * @param callback
 	 */
 	function move(element, endX, endY, frames, callback) {
 

@@ -486,6 +486,11 @@ RedLocomotive('core', function(engine, options) {
 
 				//empty the viewport
 				viewport.context.clearRect(0, 0, viewport.width, viewport.height);
+				
+				if(viewport.fillStyle) {
+					viewport.context.fillStyle = viewport.fillStyle;
+					viewport.context.fillRect(0, 0, viewport.width, viewport.height);
+				}
 
 				//get the elements
 				elements = engine.element.get('all');

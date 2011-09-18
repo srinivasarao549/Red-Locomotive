@@ -19,6 +19,7 @@ RedLocomotive('controls', function (engine, options) {
 			"pause": 19, "break": 19,
 			"capslock": 20,
 			"escape": 27, "esc": 27,
+			"space": 32, "spacebar": 32,
 			"pageup": 33,
 			"pagedown": 34,
 			"end": 35,
@@ -259,94 +260,117 @@ RedLocomotive('controls', function (engine, options) {
 		return activeKeys;
 	}
 
-	function onHoverBase(element, viewport, callback, maxAlpha) {
-		viewport.node.mouseover(function(event){
+	function cursorIsInElement(element, x, y, minAlpha) {
 
-			//the the viewport's cursor x and y
-			var x = viewport.cursor.x,
-				y = viewport.cursor.y,
-				alpha = 0;
+		if(
+			(x >= element.x && x < element.x + element.width) &&
+			(y >= element.y && y < element.y + element.height)
+		) {
+			var bitmap = element.spriteSheet.sprites[element.colMaskPos[0]][element.colMaskPos[1]];
 
-			if(maxAlpha) {
-				alpha = engine.bitmap.pointData(element, x, y)[3];
+			if(typeof minAlpha === 'number') {
+
+				if(engine.bitmap.pointData(bitmap, x - element.x, y - element.y)[3] >= minAlpha) {
+					return true;
+				} else {
+					return false;
+				}
+
+			} else {
+				return true;
 			}
-
-			if(
-				//the x axis
-				(x > element.x && x < element.x + element.width) &&
-				(y > element.y && x < element.y + element.height) &&
-				typeof callback === 'function' &&
-				(!maxAlpha || alpha <= maxAlpha)
-			) {
-				callback(event);
-			}
-		});
-
+		}
+		
+		return false;
 	}
 
-	function onHover(element, viewport, callback) {
-		onHoverBase(element, viewport, callback, false);
+	function onHoverBase(element, viewport, callback, endCallback, minAlpha) {
+		var isIn = false;
+
+		if(typeof callback === 'function') {
+
+			viewport.node.mousemove(function(event){
+				//run the callback if all event requirements have been met
+				if(cursorIsInElement(element, viewport.cursor.x, viewport.cursor.y, minAlpha)) {
+					isIn = true;
+					callback(event);
+				}
+				if(isIn && !cursorIsInElement(element, viewport.cursor.x, viewport.cursor.y, minAlpha)) {
+					isIn = false;
+
+					if(typeof endCallback === 'function') {
+						endCallback(event);
+					}
+				}
+			});
+		}
 	}
 
-	function onAlphaHover(element, viewport, callback) {
-		onClickBase(element, viewport, callback, true);
+	function onHover(element, viewport, callback, endCallback) {
+		onHoverBase(element, viewport, callback, endCallback, false);
 	}
 
-	function onClickBase(element, viewport, callback, button, maxAlpha) {
-		viewport.node.click(function(event){
-
-			//the the viewport's cursor x and y
-			var x = viewport.cursor.x,
-				y = viewport.cursor.y,
-				alpha = 0;
-
-			//get the alpha
-			if(maxAlpha) { alpha = engine.bitmap.pointData(element, x, y)[3]; }
-
-			//run the callback if all event requirements have been met
-			if(
-				typeof callback === 'function' &&
-				(x > element.x && x < element.x + element.width) &&
-				(y > element.y && x < element.y + element.height) &&
-				(!button || button === event.which) &&
-				(!maxAlpha || alpha <= maxAlpha)
-			) {
-				callback(event);
-			}
-
-		});
+	function onAlphaHover(element, viewport, alpha, callback, endCallback) {
+		onHoverBase(element, viewport, callback, endCallback, alpha);
 	}
 
-	function onClick(element, viewport, callback) {
-		onClickBase(element, viewport, callback, false, false);
+	function onClickBase(element, viewport, callback, endCallback, button, minAlpha) {
+		var isIn = false;
+
+		if(typeof callback === 'function' && (!button || button === event.which)) {
+
+			//ON MOUSE IN
+			viewport.node.mousedown(function(event){
+				//run the callback if all event requirements have been met
+				if(cursorIsInElement(element, viewport.cursor.x, viewport.cursor.y, minAlpha)) {
+					isIn = true;
+					callback(event);
+				}
+			});
+
+			//ON MOUSE OUT
+			viewport.node.mouseup(function (event) {
+				if(isIn && cursorIsInElement(element, viewport.cursor.x, viewport.cursor.y, minAlpha)) {
+					isIn = false;
+
+					if(typeof endCallback === 'function') {
+						endCallback(event);
+					}
+				}
+			});
+		}
 	}
 
-	function onLeftClick(element, viewport, callback) {
-		onClickBase(element, viewport, callback, 1, false);
+	function onClick(element, viewport, callback, endCallback) {
+		onClickBase(element, viewport, callback, endCallback, false, false);
 	}
 
-	function onMiddleClick(element, viewport, callback) {
-		onClickBase(element, viewport, callback, 2, false);
+	function onLeftClick(element, viewport, callback, endCallback) {
+		onClickBase(element, viewport, callback, endCallback, 1, false);
 	}
 
-	function onRightClick(element, viewport, callback) {
-		onClickBase(element, viewport, callback, 3, false);
+	function onMiddleClick(element, viewport, callback, endCallback) {
+		onClickBase(element, viewport, callback, endCallback, 2, false);
 	}
 
-	function onAlphaClick(element, viewport, alpha, callback) {
-		onClickBase(element, viewport, callback, false, alpha);
+	function onRightClick(element, viewport, callback, endCallback) {
+		onClickBase(element, viewport, callback, endCallback, 3, false);
 	}
 
-	function onAlphaLeftClick(element, viewport, alpha, callback) {
-		onClickBase(element, viewport, callback, 1, alpha);
+	function onAlphaClick(element, viewport, alpha, callback, endCallback) {
+		onClickBase(element, viewport, callback, endCallback, false, alpha);
 	}
 
-	function onAlphaMiddleClick(element, viewport, alpha, callback) {
-		onClickBase(element, viewport, callback, 2, alpha);
+	function onAlphaLeftClick(element, viewport, alpha, callback, endCallback) {
+		onClickBase(element, viewport, callback, endCallback, 1, alpha);
 	}
 
-	function onAlphaRightClick(element, viewport, alpha, callback) {
-		onClickBase(element, viewport, callback, 3, alpha);
+	function onAlphaMiddleClick(element, viewport, alpha, callback, endCallback) {
+		onClickBase(element, viewport, callback, endCallback, 2, alpha);
+	}
+
+	function onAlphaRightClick(element, viewport, alpha, callback, endCallback) {
+		onClickBase(element, viewport, callback, endCallback, 3, alpha);
 	}
 
 	return {
