@@ -10,17 +10,19 @@ RedLocomotive('core', function(engine, options) {
 
 	//create configuration
 	var config = jQuery.extend({
-		"showFPS": false,
 		"fps": 60
 	}, options);
 
 	//get the canvas
 	var lastId = 0,
+		millisecondsPerFrame = Math.floor(1000 / config.fps),
 		active = false,
 		frameCount = 0,
 		realFps = '?',
-		cycleDrift = 0,
+		coreCycleDrift = 0,
+		secondaryCycleDrift = 0,
 		lastCoreLoopTime = 0,
+		lastSecondaryLoopTime = 0,
 		timers = {},
 		events = {},
 		tanMap = {},
@@ -31,74 +33,100 @@ RedLocomotive('core', function(engine, options) {
 		acosMap = {};
 
 	//core loop
-	(function coreLoop(coreLoopTime) {
+	(function loops(coreLoopTime) {
 
-		//if active
+		//if inactive
 		if (active) {
+			coreLoop(coreLoopTime);
+			secondaryLoop(coreLoopTime);
+		}
 
-			//get the milliseconds per frame
-			var mspf = Math.floor(1000 / config.fps);
+		//get the next frame
+		requestAnimationFrame(loops);
 
-			if (cycleDrift < 10) {
+	})(new Date());
 
-				//count the amount of drift in milliseconds between frames
-				cycleDrift += Math.round(((coreLoopTime - lastCoreLoopTime) / mspf) * 10) / 10;
+	function coreLoop(coreLoopTime){
 
+		if(!lastCoreLoopTime) { lastCoreLoopTime = coreLoopTime; }
+
+		if (coreCycleDrift < 10) {
+
+			//count the number of cycles that should have occurred since the last
+			coreCycleDrift += (coreLoopTime - lastCoreLoopTime) / millisecondsPerFrame;
+
+		}
+
+		//get the number of cycles for this loop
+		var clockCycles = Math.floor(coreCycleDrift);
+
+		//if there are cycles in this loop
+		if(clockCycles > 0) {
+
+			//run the clock for each cycle
+			for(var i = 0; i < clockCycles; i += 1) {
+
+				//call the core loop hook
+				newEvent('coreLoop');
+
+				//run the system clock
+				clock();
 			}
 
-			//get the number of cycles for this loop
-			var clockCycles = Math.floor(cycleDrift);
+			//update the frame counter
+			frameCount += 1;
 
-			//if there are cycles in this loop
-			if(clockCycles > 0) {
-
-				//update the frame counter
-				frameCount += 1;
-
-				//remove the elapsed cycles from the frameDrift
-				cycleDrift -= clockCycles;
-
-				//run the clock for each cycle
-				for(var i = 0; i < clockCycles; i += 1) {
-					clock();
-				}
-				
-				draw();
-			}
-
-			//call the core loop hook
-			newEvent('coreLoop', cycleDrift);
+			//remove the elapsed cycles from the frameDrift
+			coreCycleDrift -= clockCycles;
+			
+			//draw once to each viewport
+			draw();
 		}
 
 		//save the last core loop time
 		lastCoreLoopTime = coreLoopTime;
 
-		//get the next frame
-		requestAnimationFrame(coreLoop);
+	}
 
-	})(new Date());
+	function secondaryLoop(coreLoopTime){
 
-	//core secondary loop
-	setInterval(function () {
+		if(!lastSecondaryLoopTime) { lastSecondaryLoopTime = coreLoopTime; }
 
-		//figure out the framerate
-		realFps = frameCount;
-		frameCount = 0;
+		if (secondaryCycleDrift < 10) {
 
-		//stop the loop if the system is inactive
-		if (!active) { return true; }
+			//count the number of cycles that should have occurred since the last
+			secondaryCycleDrift += (coreLoopTime - lastSecondaryLoopTime) / 1000;
 
-		//call the second loop hook
-		newEvent('coreSecLoop');
+		}
 
-	}, 1000);
+		var clockCycles = Math.floor(secondaryCycleDrift);
+
+		if(clockCycles > 0) {
+
+			for(var i = 0; i < clockCycles; i += 1) {
+
+				//call the second loop hook
+				newEvent('secLoop');
+			}
+
+			//remove the elapsed cycles from the frameDrift
+			secondaryCycleDrift -= clockCycles;
+
+			//figure out the framerate
+			realFps = frameCount;
+			frameCount = 0;
+		}
+
+		//save the last core loop time
+		lastSecondaryLoopTime = coreLoopTime;
+	}
 
 	//window focus
-	jQuery(window).focus(function (e) {
+	jQuery(window).focus(function () {
 		active = true;
 	});
 	//window blur
-	jQuery(window).blur(function (e) {
+	jQuery(window).blur(function () {
 		active = false;
 	});
 
@@ -470,7 +498,7 @@ RedLocomotive('core', function(engine, options) {
 
 		var viewports = engine.viewport.get('all'),
 			viewport,
-			elements,
+			elements = engine.element.get('all'),
 			element,
 			x,
 			y,
@@ -484,18 +512,18 @@ RedLocomotive('core', function(engine, options) {
 				//clear the stack
 				stack = [];
 
+				//get the viewport context
+				var context = viewport.bitmap.context;
+
 				//empty the viewport
-				viewport.context.clearRect(0, 0, viewport.width, viewport.height);
-				
 				if(viewport.fillStyle) {
-					viewport.context.fillStyle = viewport.fillStyle;
-					viewport.context.fillRect(0, 0, viewport.width, viewport.height);
+					context.fillStyle = viewport.fillStyle;
+					context.fillRect(0, 0, viewport.width, viewport.height);
+				} else {
+					context.clearRect(0, 0, viewport.width, viewport.height);
 				}
 
-				//get the elements
-				elements = engine.element.get('all');
-
-				//order the new content
+				//sort the elements
 				for (var elementName in elements) {
 					if (elements.hasOwnProperty(elementName)) {
 
@@ -507,12 +535,11 @@ RedLocomotive('core', function(engine, options) {
 
 						//Make sure the element is in view
 						if (
-							x + element.width > 0 &&
-							x < viewport.width &&
-							y + element.height > 0 &&
-							y < viewport.height &&
-							typeof element.z === 'number'
+							x + element.width > 0 && x < viewport.width - 1 &&
+							y + element.height > 0 && y < viewport.height - 1
 						) {
+
+							//store the element in a stack sorted by z height
 							if (!stack[element.z]) {
 								stack[element.z] = [];
 							}
@@ -521,15 +548,16 @@ RedLocomotive('core', function(engine, options) {
 					}
 				}
 
+				//anounce a new draw cycle and pass the stack to it
 				newEvent('draw', stack);
 
 				//draw the new content
-				for (var level in stack) {
-					if (stack.hasOwnProperty(level)) {
-						for (var i = 0; i < stack[level].length; i += 1) {
+				for (var z in stack) {
+					if (stack.hasOwnProperty(z)) {
+						for (var i = 0; i < stack[z].length; i += 1) {
 
 							//get the element
-							element = stack[level][i];
+							element = stack[z][i];
 
 							//x and y
 							x = element.x - viewport.x;
@@ -539,7 +567,7 @@ RedLocomotive('core', function(engine, options) {
 								imageData = sprite.canvas[0];
 
 							//draw to the context
-							viewport.context.drawImage(imageData, x, y);
+							viewport.bitmap.context.drawImage(imageData, x, y);
 
 						}
 					}
@@ -548,27 +576,14 @@ RedLocomotive('core', function(engine, options) {
 		}
 	}
 
-	function loopIsActive() {
-		return active;
-	}
-
-	function pause() {
-		newEvent('pause');
-		active = false;
-	}
-
-	function resume() {
-		newEvent('resume');
+	function start() {
 		active = true;
 	}
 
 	//return the core api
 	return {
-		"loopIsActive": loopIsActive,
+		"start": start,
 		"callCounter": newCallCounter,
-		"pause": pause,
-		"resume": resume,
-		"start": resume,
 		"distance": distance,
 		"degree": degree,
 		"vector": vector,

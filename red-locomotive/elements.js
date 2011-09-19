@@ -72,16 +72,36 @@ RedLocomotive("elements", function(engine, options) {
 	 */
 	function removeElement(elementName) {
 
+		var viewports = engine.viewport.get('all');
+
 		if(elementName.name){
 			elementName = elementName.name;
 		}
 
 		if(elementName === 'all') {
-			elements = {};
+			for(var elementName in elements) {
+				if(elements.hasOwnProperty(elementName)) {
+					removeElement(elementName);
+				}
+			}
 		}
 
 		if (elements[elementName]) {
+			
 			delete elements[elementName];
+
+			for(var viewportName in viewports) {
+				if(viewports.hasOwnProperty(viewportName)) {
+					var canvas = viewports[viewportName].bitmap.canvas;
+					canvas
+						.mousemove()
+						.mouseup()
+						.unbind('mousemove.' + elementName)
+						.unbind('mousedown.' + elementName)
+						.unbind('mouseup.' + elementName);
+				}
+			}
+
 			return true;
 		}
 
@@ -151,7 +171,7 @@ RedLocomotive("elements", function(engine, options) {
                 //figure out limits
                 var viewportLimits = {
                         "top": viewport.y,
-                        "bottom": viewport.y + viewport.node[0].height,
+                        "bottom": viewport.y + viewport.bitmap.canvas[0].height,
                         "left": viewport.x,
                         "right": viewport.x + viewport.width,
                         "centerX": (viewport.x + (viewport.width / 2)),

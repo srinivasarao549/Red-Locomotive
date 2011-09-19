@@ -289,9 +289,10 @@ RedLocomotive('controls', function (engine, options) {
 
 		if(typeof callback === 'function') {
 
-			viewport.node.mousemove(function(event){
+			viewport.bitmap.canvas.bind('mousemove.' + element.name, function(event){
+				
 				//run the callback if all event requirements have been met
-				if(cursorIsInElement(element, viewport.cursor.x, viewport.cursor.y, minAlpha)) {
+				if(!isIn && cursorIsInElement(element, viewport.cursor.x, viewport.cursor.y, minAlpha)) {
 					isIn = true;
 					callback(event);
 				}
@@ -320,7 +321,7 @@ RedLocomotive('controls', function (engine, options) {
 		if(typeof callback === 'function' && (!button || button === event.which)) {
 
 			//ON MOUSE IN
-			viewport.node.mousedown(function(event){
+			viewport.bitmap.canvas.bind('mousedown.' + element.name, function(event){
 				//run the callback if all event requirements have been met
 				if(cursorIsInElement(element, viewport.cursor.x, viewport.cursor.y, minAlpha)) {
 					isIn = true;
@@ -329,7 +330,7 @@ RedLocomotive('controls', function (engine, options) {
 			});
 
 			//ON MOUSE OUT
-			viewport.node.mouseup(function (event) {
+			viewport.bitmap.canvas.bind('mouseup.' + element.name, function (event) {
 				if(isIn && cursorIsInElement(element, viewport.cursor.x, viewport.cursor.y, minAlpha)) {
 					isIn = false;
 

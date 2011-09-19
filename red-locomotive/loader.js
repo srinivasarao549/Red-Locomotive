@@ -188,6 +188,7 @@ if(typeof jQuery === "undefined") {
 							spriteSheets = options.spriteSheets,
 							count = (required && required.length && 1 || 0) + (spriteSheets && spriteSheets.length && 1 || 0),
 							counter = engine.callCounter(count, function () {
+								engine.start();
 								callback(engine);
 							});
 
