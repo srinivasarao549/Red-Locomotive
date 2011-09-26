@@ -7,6 +7,7 @@
  * See license.txt
  */
 RedLocomotive('core', function(engine, options) {
+    "use strict"
 
 	//create configuration
 	var config = jQuery.extend({
@@ -580,6 +581,16 @@ RedLocomotive('core', function(engine, options) {
 		active = true;
 	}
 
+	function clear() {
+
+		//clear elements
+		engine.element.remove('all');
+
+		//unbind all key board bindings
+		engine.unbind.key('all');
+
+	}
+
 	//return the core api
 	return {
 		"start": start,
@@ -599,7 +610,8 @@ RedLocomotive('core', function(engine, options) {
 		"sin": sin,
 		"asin": asin,
 		"cos": cos,
-		"acos": acos
+		"acos": acos,
+		"clear": clear
 	}
 
 });

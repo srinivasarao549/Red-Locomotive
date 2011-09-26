@@ -7,6 +7,7 @@
  * See license.txt
  */
 RedLocomotive('viewports', function(engine, options){
+    "use strict"
 
 	var viewports = {};
 
@@ -40,9 +41,10 @@ RedLocomotive('viewports', function(engine, options){
 			};
 		viewports[viewportName] = viewport;
 
-		jQuery(container).append(bitmap.canvas);
+		jQuery(container).empty().append(bitmap.canvas);
 
 		bitmap.canvas.mousemove(function (event) {
+			engine.start();
 
 			var DOMWidth = bitmap.canvas.width(),
 				DOMHeight = bitmap.canvas.height(),

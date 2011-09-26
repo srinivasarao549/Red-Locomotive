@@ -8,6 +8,7 @@
  */
 
 RedLocomotive('controls', function (engine, options) {
+    "use strict"
 
 	var keys = {
 			"backspace": 8,
@@ -57,10 +58,12 @@ RedLocomotive('controls', function (engine, options) {
 			"singlequote": 222
 		},
 		activeKeys = [],
-		keyBindings = [];
+		activeBindings = {},
+		keyBindingGroups = [];
 
-	
+	//adds keys to the active keys array
 	jQuery(document).keydown(function(event) {
+		engine.start();
 
 		for (var key in keys) {
 			if(keys.hasOwnProperty(key) && event.keyCode === keys[key]) {
@@ -70,10 +73,11 @@ RedLocomotive('controls', function (engine, options) {
 			}
 		}
 
-		return checkBindedKeys();
+		return executeActiveKeyBindings();
 		
 	});
 
+	//removes keys from the active array
 	jQuery(document).keyup(function (event) {
 
 		for(var key in keys) {
@@ -86,60 +90,89 @@ RedLocomotive('controls', function (engine, options) {
 				}
 			}
 		}
+
+		pruneActiveKeyBindings();
+
 	});
 
-	function checkBindedKeys() {
+	/**
+	 * queryActiveBindings - Generates an array of active key bindings
+	 */
+	function queryActiveBindings() {
+		var bindingStack = [];
 
-		if(activeKeys < 1) {
-			return true;
-		}
+		//loop through the key binding groups by number of keys.
+		for(var keyCount = keyBindingGroups.length; keyCount > -1; keyCount -= 1) {
+			if(keyBindingGroups[keyCount]) {
+				var KeyBindingGroup = keyBindingGroups[keyCount];
 
-		var activeKeyBindings = [],
-			spentKeys = [];
+				//loop through the key bindings of the same key length.
+				for(var bindingIndex = 0; bindingIndex < KeyBindingGroup.length; bindingIndex += 1) {
+					var binding = KeyBindingGroup[bindingIndex],
 
-		//loop through the key binding groups.
-		for(var iKCL = keyBindings.length; iKCL > -1; iKCL -= 1) {
-			if(keyBindings[iKCL]) {
-				var KeyBindingGroup = keyBindings[iKCL];
-
-				//loop through the key bindings.
-				for(var iB = 0; iB < KeyBindingGroup.length; iB += 1) {
-					var KeyBinding = KeyBindingGroup[iB],
+					//assume the binding is active till a required key is found to be unsatisfied
 						keyBindingActive = true;
 
-					//loop through the current key binding keys.
-					for(var iKB = 0; iKB < KeyBinding.keys.length;  iKB += 1) {
-						var key = KeyBinding.keys[iKB];
+					//loop through each key required by the binding.
+					for(var keyIndex = 0; keyIndex < binding.keys.length;  keyIndex += 1) {
+						var key = binding.keys[keyIndex];
 
-						//loop through the active keys and findout if the current key is pressed.
+						//if the current key is not in the active keys array the mark the binding as inactive
 						if(activeKeys.indexOf(key) < 0) {
 							keyBindingActive = false;
 						}
 					}
 
+					//if the key combo is still active then push it into the binding stack
 					if(keyBindingActive) {
-						activeKeyBindings.push(KeyBinding);
+						bindingStack.push(binding);
 					}
 				}
 			}
 		}
 
-		for (var iAKB = 0; iAKB < activeKeyBindings.length; iAKB += 1) {
-			var activeKeyBinding = activeKeyBindings[iAKB],
-				keySpent = false;
+		return bindingStack;
+	}
 
-			for(var iK = 0; iK < activeKeyBinding.keys.length; iK += 1) {
+	function executeActiveKeyBindings() {
+
+		if(activeKeys < 1) {
+			return true;
+		}
+
+		var bindingStack = queryActiveBindings(),
+			spentKeys = [];
+
+		//loop through each active binding
+		for (var bindingIndex = 0; bindingIndex < bindingStack.length; bindingIndex += 1) {
+			var binding = bindingStack[bindingIndex],
+				usesSpentKey = false;
+
+			//check each of the required keys. Make sure they have not been used by another binding
+			for(var keyIndex = 0; keyIndex < binding.keys.length; keyIndex += 1) {
+				var key = binding.keys[keyIndex];
 				if(spentKeys.indexOf(key) > -1) {
-					keySpent = true;
+					usesSpentKey = true;
 					break;
 				}
 			}
 
-			if(!keySpent) {
-				//fire the callback
-				activeKeyBinding.callback(activeKeyBinding.keys, activeKeyBinding.keyCombo);
+			//if the binding does not use a key that has been spent then execute it
+			if(!usesSpentKey) {
 
-				for(var iK = 0; iK < activeKeyBinding.keys.length; iK += 1) {
+				//fire the callback
+				if(typeof binding.callback === "function") {
+					binding.callback(binding.keys, binding.keyCombo);
+				}
+
+				//add the binding's combo to the active bindings array
+				if(!activeBindings[binding.keyCombo]) {
+					activeBindings[binding.keyCombo] = binding;
+				}
+
+				//add the current key binding's keys to the spent keys array
+				for(var keyIndex = 0; keyIndex < binding.keys.length; keyIndex += 1) {
+					var key = binding.keys[keyIndex];
 					if(spentKeys.indexOf(key) < 0) {
 						spentKeys.push(key);
 					}
@@ -147,6 +180,8 @@ RedLocomotive('controls', function (engine, options) {
 			}
 		}
 
+		//if there are spent keys then we know a binding was fired
+		// and that we need to tell jQuery to prevent event bubbling.
 		if(spentKeys.length) {
 			return false;
 		}
@@ -154,7 +189,44 @@ RedLocomotive('controls', function (engine, options) {
 		return true;
 	}
 
-	function bindKey(keyCombo, callback) {
+	/**
+	 * pruneActiveKeyBindings - Fires the end callback for key bindings
+	 */
+	function pruneActiveKeyBindings() {
+		var bindingStack = queryActiveBindings();
+
+		//loop through the active combos
+		for(var bindingCombo in activeBindings) {
+			if(activeBindings.hasOwnProperty(bindingCombo)) {
+				var binding = activeBindings[bindingCombo],
+					active = false;
+
+				//loop thorugh the active bindings
+				for(var bindingIndex = 0; bindingIndex < bindingStack.length; bindingIndex += 1) {
+					var activeCombo = bindingStack[bindingIndex].keyCombo;
+
+					//check to see if the combo is still active
+					if(activeCombo === bindingCombo) {
+						active = true;
+						break;
+					}
+				}
+
+				//if the combo is no longer active then fire its end callback and remove it
+				if(!active) {
+
+					if(typeof binding.endCallback === "function") {
+						binding.endCallback(binding.keys, binding.keyCombo);
+					}
+
+					delete activeBindings[bindingCombo];
+				}
+			}
+		}
+	}
+
+
+	function bindKey(keyCombo, callback, endCallback) {
 
 		//create an array of combos from the first argument
 		var bindSets = keyCombo.toLowerCase().replace(/\s/g, '').split(',');
@@ -167,11 +239,12 @@ RedLocomotive('controls', function (engine, options) {
 
 			//if there are keys in the current combo
 			if(keys.length) {
-				if(!keyBindings[keys.length]) { keyBindings[keys.length] = []; }
+				if(!keyBindingGroups[keys.length]) { keyBindingGroups[keys.length] = []; }
 
 				//save the binding sorted by length
-				keyBindings[keys.length].push({
+				keyBindingGroups[keys.length].push({
 					"callback": callback,
+					"endCallback": endCallback,
 					"keyCombo": bindSets[i],
 					"keys": keys
 				});
@@ -180,9 +253,8 @@ RedLocomotive('controls', function (engine, options) {
 		}
 	}
 
-	function bindAxis(up, down, left, right, distance, callback) {
-		var axis = [0, 0],
-			lastAxis = [false, false];
+	function bindAxis(up, down, left, right, callback) {
+		var axis = [0, 0];
 
 		if(typeof callback !== 'function') {
 			return;
@@ -190,70 +262,136 @@ RedLocomotive('controls', function (engine, options) {
 
 		//up
 		bindKey(up, function () {
-			axis[1] = -1;
+			if(axis[0] === 0) {
+				axis[0] = -1;
+			}
+		}, function() {
+			axis[0] = 0;
 		});
 
 		//down
 		bindKey(down, function () {
-			axis[1] = 1;
+			if(axis[0] === 0) {
+				axis[0] = 1;
+			}
+		}, function() {
+			axis[0] = 0;
 		});
 
 		//left
 		bindKey(left, function () {
-			axis[0] = -1;
+			if(axis[1] === 0) {
+				axis[1] = -1;
+			}
+		}, function() {
+			axis[1] = 0;
 		});
 
 		//right
 		bindKey(right, function () {
-			axis[0] = 1;
+			if(axis[1] === 0) {
+				axis[1] = 1;
+			}
+		}, function() {
+			axis[1] = 0;
 		});
 
 		engine.every(function(){
 			var degree;
 
-			if (
-				(axis[0] !== lastAxis[0]) || (axis[1] !== lastAxis[1])
-			) {
-
-				//up
-				if(axis[0] === 0 && axis[1] === -1) {
-					degree = 0;
-				}
-
-				//up left
-				else if(axis[0] === 1 && axis[1] === -1) {
-					degree = 45;
-				}
-
-				//left
-				else if(axis[0] === 1 && axis[1] === 0) {
-					degree = 90;
-				}
-
-				//left down
-				else if(axis[0] === 1 && axis[1] === 1) {
-					degree = 135;
-				}
-
-				//down
-				else if(axis[0] === 0 && axis[1] === 1) {
-					degree = 180;
-				}
-
-				//down right
-				else if(axis[0] === -1 && axis[1] === 1) {
-					degree = 225;
-				}
-
-				//right
-				else if(axis[0] === -1 && axis[1] === 0) {
-					degree = 270;
-				}
-
-				//run the callback
-				callback(engine.coords(degree, distance));
+			//NO CHANGE
+			if(axis[0] === 0 && axis[1] === 0) {
+				return;
 			}
+
+			//ON 45 ANGLE
+			//up left
+			else if(axis[0] === -1 && axis[1] === -1) {
+				degree = 315;
+			}
+
+			//up right
+			else if(axis[0] === -1 && axis[1] === 1) {
+				degree = 45;
+			}
+
+			//down left
+			else if(axis[0] === 1 && axis[1] === -1) {
+				degree = 225;
+			}
+
+			//down right
+			else if(axis[0] === 1 && axis[1] === 1) {
+				degree = 135;
+			}
+
+			//ON 90 ANGLE
+			//up
+			else if(axis[0] === -1 && axis[1] === 0) {
+				degree = 0;
+			}
+
+			//down
+			else if(axis[0] === 1 && axis[1] === 0) {
+				degree = 180;
+			}
+
+			//left
+			else if(axis[0] === 0 && axis[1] === -1) {
+				degree = 270;
+			}
+
+			//right
+			else if(axis[0] === 0 && axis[1] === 1) {
+				degree = 90;
+			}
+
+			//run the callback
+			callback(degree);
+
 		});
+	}
+
+	function unbindKey(keys) {
+
+		if(keys === 'all') {
+			keyBindingGroups = [];
+			return;
+		}
+
+		keys = keys.replace(/\s/g, '').split(',');
+
+		//loop through the key binding groups.
+		for(var iKCL = keyBindingGroups.length; iKCL > -1; iKCL -= 1) {
+			if(keyBindingGroups[iKCL]) {
+				var KeyBindingGroup = keyBindingGroups[iKCL],
+					remove = true;
+
+				//loop through the key bindings.
+				for(var iB = 0; iB < KeyBindingGroup.length; iB += 1) {
+					var keyBinding = KeyBindingGroup[iB];
+
+					//loop through the current key binding keys.
+					for(var iKB = 0; iKB < keyBinding.keys.length;  iKB += 1) {
+						var key = keyBinding.keys[iKB];
+
+						//loop through the keys to be removed
+						for(var iKR = 0; iKR < keys.length; iKR += 1) {
+							var keyToRemove = keys[iKR];
+							if(keyToRemove === key) {
+								remove = true;
+								break;
+							}
+						}
+						if(remove) { break; }
+					}
+					if(remove) { break; }
+				}
+				if(remove) {
+					delete keyBindingGroups[iKCL];
+				}
+			}
+		}
 	}
 
 	function getActiveKeys() {
@@ -391,7 +529,10 @@ RedLocomotive('controls', function (engine, options) {
 				"hover": onAlphaHover
 			}
 		},
-		"activeKeys": getActiveKeys
+		"activeKeys": getActiveKeys,
+		"unbind": {
+			"key": unbindKey
+		}
 	}
 
 });

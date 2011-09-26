@@ -30,6 +30,7 @@ if(typeof jQuery === "undefined") {
 }
 
 (function(){
+    "use strict"
 	/**
 	 * RED LOCOMOTIVE LOADER
 	 *
@@ -64,17 +65,17 @@ if(typeof jQuery === "undefined") {
 	 */
 	function loadScript(url, callback) {
 
+		function exec () {
+			if (i < url.length) {
+				i += 1;
+			} else if (typeof callback === 'function') {
+				callback();
+			}
+		}
+
 		//if a single script is requested then load it
 		if (typeof url === 'object') {
 			var i = 1;
-
-			function exec () {
-				if (i < url.length) {
-					i += 1;
-				} else if (typeof callback === 'function') {
-					callback();
-				}
-			}
 
 			//load each module
 			for(var ii = 0; ii < url.length; ii += 1) {
@@ -101,19 +102,21 @@ if(typeof jQuery === "undefined") {
 	 */
 	function require(moduleName, callback, inCore) {
 
+		function exec () {
+
+			if (i < moduleName.length) {
+				i += 1;
+			} else if (typeof callback === 'function') {
+				callback();
+			}
+
+		}
+
 		//if a list of modules is given
 		if(typeof moduleName === 'object') {
 			var i = 1;
 
-			function exec () {
 
-				if (i < moduleName.length) {
-					i += 1;
-				} else if (typeof callback === 'function') {
-					callback();
-				}
-
-			}
 
 			//load each module
 			for(var ii = 0; ii < moduleName.length; ii += 1) {

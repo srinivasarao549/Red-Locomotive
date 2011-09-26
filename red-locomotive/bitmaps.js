@@ -7,6 +7,7 @@
  * See license.txt
  */
 RedLocomotive('bitmaps', function(){
+    "use strict"
 
 	/**
 	 * newBitmap - Creates a new Red Locomotive bitmap width dimensions and image data.
@@ -112,9 +113,13 @@ RedLocomotive('bitmaps', function(){
 	function slice(bitmap, width, height) {
 
 		//calculate the rows and columns
-		var rows = Math.floor(bitmap.canvas[0].width / width),
-			columns = Math.floor(bitmap.canvas[0].height / height),
+		var rows = Math.floor(bitmap.canvas[0].width / width) || 1,
+			columns = Math.floor(bitmap.canvas[0].height / height) || 1,
 			bitmaps = [];
+
+		if(rows < 2 && columns < 2) {
+			return [[bitmap]];
+		}
 
 		//get each piece
 		for (var rI = 0; rI < rows; rI += 1) {

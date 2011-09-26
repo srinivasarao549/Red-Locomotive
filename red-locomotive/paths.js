@@ -7,6 +7,7 @@
  * See license.txt
  */
 RedLocomotive('paths', function (engine, options) {
+    "use strict"
 
 	function followPath(element, pathArray, frames, PositioningMethod, callback) {
 

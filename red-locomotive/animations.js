@@ -1,4 +1,5 @@
 RedLocomotive('animations', function(engine, options) {
+    "use strict"
 
 	/**
 	 * Move any object that contains X and Y coordinates
@@ -139,8 +140,7 @@ RedLocomotive('animations', function(engine, options) {
 	return {
 		"animate": {
 			"move": move,
-			"sequence": sequence,
-			"stop": stop
+			"sequence": sequence
 		}
 	}
 

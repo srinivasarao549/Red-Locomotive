@@ -7,6 +7,7 @@
  * See license.txt
  */
 RedLocomotive("elements", function(engine, options) {
+    "use strict"
 
     var elements = {},
 		textElements = {};
@@ -30,7 +31,7 @@ RedLocomotive("elements", function(engine, options) {
 			if(spriteSheet && typeof spriteSheet === 'string') {
 				spriteSheet = engine.spriteSheet.get(spriteSheet);
 			}
-
+			
 			var element = {
 				"name": elementName,
 				"spriteSheet": spriteSheet,

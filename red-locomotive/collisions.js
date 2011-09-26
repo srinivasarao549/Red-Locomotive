@@ -7,6 +7,7 @@
  * See license.txt
  */
 RedLocomotive('collisions', function(engine, options) {
+    "use strict"
 
 	var collisions = {};
 
