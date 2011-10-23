@@ -9,80 +9,52 @@ RedLocomotive('animations', function(engine, options) {
 	 * @param frames
 	 * @param callback
 	 */
-	function move(element, endX, endY, frames, callback) {
-
-		var cleared = false;
+	function move(element, endX, endY, pixelsPerFrame, callback) {
+		var iF = 0;
 
 		function clear() {
-			cleared = true;
+			if(clearAni) { clearAni(); }
+			if(typeof callback === 'function') { callback(); }
 		}
-
-		var api = {
-			"clear": clear
-		};
 
 		function setCallback(newCallback) {
 			callback = newCallback;
 		}
 
-		//if the element has x and y values, and they are int values.
-		if (typeof element.x === 'number' && typeof element.y === 'number') {
+		//get the distance
+		var distance = engine.distance(endX - element.x, endY - element.y),
+			frames = (distance / pixelsPerFrame) || 1;
 
-			var moveTimer,
-				counter = frames || 1;
+		//for each frame move the element
+		var clearAni = engine.every(function(){
 
-			moveTimer = engine.every(function(){
+			console.log(1);
+			
+			if(iF < frames) {
 
-				if(cleared) {
-					//kill the timer
-					moveTimer.clear();
+				//calculate the distance to our goal
+				var vector = engine.vector(endX - element.x, endY - element.y);
 
-					if (typeof callback === 'function') {
-						callback();
-					}
-				}
+				//calculate the distance to move this frame
+				var move = vector[1] / (frames - iF);
 
-				if(!counter) {
+				//calculate the new coords
+				var coords = engine.coords(vector[0], move);
 
-					newX = endX;
-					newY = endY;
+				//apply the new coords
+				element.x += coords.x;
+				element.y += coords.y;
 
-					//kill the timer
-					moveTimer.clear();
-
-					if (typeof callback === 'function') {
-						callback();
-					}
-
-				} else {
-
-					counter -= 1;
-
-					//calculate the distance
-					var distanceX = endX - element.x,
-						distanceY = endY - element.y,
-						moveX = Math.round((distanceX / counter) * 100) / 100,
-						moveY = Math.round((distanceY / counter) * 100) / 100,
-						newX = element.x + moveX,
-						newY = element.y + moveY;
-				}
-
-
-				element.x = newX;
-				element.y = newY;
-
-				//fire an event for movement
-				engine.event('move', api, moveX, moveY);
-				engine.event('move-' + element.name, api, moveX, moveY);
-
-			});
-
-			return {
-				"clear": moveTimer.clear,
-				"setCallback": setCallback
+				iF += 1;
+			} else {
+				clear();
 			}
+		}).clear;
+
+		return {
+			'clear': clear,
+			'setCallback': setCallback
 		}
-		return false;
 	}
 
 	/**

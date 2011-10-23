@@ -228,6 +228,17 @@ RedLocomotive('controls', function (engine, options) {
 
 	function bindKey(keyCombo, callback, endCallback) {
 
+		function clear() {
+			if(keys && keys.length) {
+				var keyBindingGroup = keyBindingGroups[keys.length];
+
+				if(keyBindingGroup.indexOf(keyBinding) > -1) {
+					var index = keyBindingGroups[keys.length].indexOf(keyBinding);
+					delete keyBindingGroups[keys.length][index];
+				}
+			}
+		}
+
 		//create an array of combos from the first argument
 		var bindSets = keyCombo.toLowerCase().replace(/\s/g, '').split(',');
 
@@ -241,19 +252,34 @@ RedLocomotive('controls', function (engine, options) {
 			if(keys.length) {
 				if(!keyBindingGroups[keys.length]) { keyBindingGroups[keys.length] = []; }
 
-				//save the binding sorted by length
-				keyBindingGroups[keys.length].push({
+				//define the
+				var keyBinding = {
 					"callback": callback,
 					"endCallback": endCallback,
 					"keyCombo": bindSets[i],
 					"keys": keys
-				});
-			}
+				}
 
+				//save the binding sorted by length
+				keyBindingGroups[keys.length].push(keyBinding);
+			}
+		}
+
+		return {
+			"clear": clear
 		}
 	}
 
 	function bindAxis(up, down, left, right, callback) {
+
+		function clear() {
+			if(typeof clearUp === 'function') { clearUp(); }
+			if(typeof clearDown === 'function') { clearDown(); }
+			if(typeof clearLeft === 'function') { clearLeft(); }
+			if(typeof clearRight === 'function') { clearRight(); }
+			if(typeof clearTimer === 'function') { clearTimer(); }
+		}
+
 		var axis = [0, 0];
 
 		if(typeof callback !== 'function') {
@@ -261,42 +287,42 @@ RedLocomotive('controls', function (engine, options) {
 		}
 
 		//up
-		bindKey(up, function () {
+		var clearUp = bindKey(up, function () {
 			if(axis[0] === 0) {
 				axis[0] = -1;
 			}
 		}, function() {
 			axis[0] = 0;
-		});
+		}).clear;
 
 		//down
-		bindKey(down, function () {
+		var clearDown = bindKey(down, function () {
 			if(axis[0] === 0) {
 				axis[0] = 1;
 			}
 		}, function() {
 			axis[0] = 0;
-		});
+		}).clear;
 
 		//left
-		bindKey(left, function () {
+		var clearLeft = bindKey(left, function () {
 			if(axis[1] === 0) {
 				axis[1] = -1;
 			}
 		}, function() {
 			axis[1] = 0;
-		});
+		}).clear;
 
 		//right
-		bindKey(right, function () {
+		var clearRight = bindKey(right, function () {
 			if(axis[1] === 0) {
 				axis[1] = 1;
 			}
 		}, function() {
 			axis[1] = 0;
-		});
+		}).clear;
 
-		engine.every(function(){
+		var clearTimer = engine.every(function(){
 			var degree;
 
 			//NO CHANGE
@@ -349,7 +375,11 @@ RedLocomotive('controls', function (engine, options) {
 			//run the callback
 			callback(degree);
 
-		});
+		}).clear;
+
+		return {
+			"clear": clear
+		}
 	}
 
 	function unbindKey(keys) {

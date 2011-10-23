@@ -9,65 +9,47 @@
 RedLocomotive('paths', function (engine, options) {
     "use strict"
 
-	function followPath(element, pathArray, frames, PositioningMethod, callback) {
-
-		function clear() {
-			if(pathTimer) { pathTimer.clear(); }
-			if(moveAni) { moveAni.clear(); }
-		}
+	function followPath(element, pathArray, pixelsPerFrame, callback) {
 
 		var i = 0,
-			coords = {},
-			vector,
-			moveAni,
-			pathTimer;
+			clearAni = function(){};
 
 		//preform the move
-		pathTimer = engine.every(function () {
+		(function move() {
 
-			switch (PositioningMethod) {
-				case 'relative':
-					coords['x'] = element.x + pathArray[i][0];
-					coords['y'] = element.y + pathArray[i][1];
-				break;
-				case 'absolute':
-					coords['x'] = pathArray[i][0];
-					coords['y'] = pathArray[i][1];
-				break;
-				case 'vectors':
-					coords = engine.coords(pathArray[i][0], pathArray[i][1]);
-					coords['x'] += element.x;
-					coords['y'] += element.y;
-				break;
-			}
+			if(i < pathArray.length) {
 
-			pathTimer.setFrames(frames);
-			moveAni = engine.animate.move(element, coords['x'], coords['y'], frames);
+				var x = pathArray[i][0],
+					y = pathArray[i][1];
 
+				clearAni = engine.animate.move(element, x, y, pixelsPerFrame, move).clear;
 
-			if (i < pathArray.length - 1) {
 				i += 1;
-			} else {
-				moveAni.setCallback(callback);
-				pathTimer.clear();
+
+			} else if(typeof callback == 'function') {
+				callback();
 			}
 
-		});
+		})();
 
 		return {
-			"clear": clear
+			"clear": clearAni
 		}
 	}
 
-	function patrolPath(element, pathArray, frames, PositioningMethod, linear) {
+	function patrolPath(element, pathArray, pixelsPerFrame, linear) {
 
-		var pathTimer = followPath(element, pathArray, frames, PositioningMethod, function () {
+		var clearPathTimer = followPath(element, pathArray, pixelsPerFrame, function () {
+
+			//if linear is true then when the element gets to the end of the path it will move
+			// back down the path in the opposite direction instead of jumping to the start of
+			// the path.
 			pathArray = linear ? pathArray.reverse() : pathArray;
-			patrolPath(element, pathArray, frames, PositioningMethod, linear);
-		});
+			patrolPath(element, pathArray, pixelsPerFrame, linear);
+		}).clear;
 
 		return {
-			"clear": pathTimer.clear
+			"clear": clearPathTimer
 		}
 	}
 

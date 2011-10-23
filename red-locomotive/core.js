@@ -20,10 +20,10 @@ RedLocomotive('core', function(engine, options) {
 		active = false,
 		frameCount = 0,
 		realFps = '?',
-		coreCycleDrift = 0,
-		secondaryCycleDrift = 0,
-		lastCoreLoopTime = 0,
-		lastSecondaryLoopTime = 0,
+		expectedFrames = 0,
+		expectedSecCycles = 0,
+		lastCoreTime = 0,
+		lastSecondTime = 0,
 		timers = {},
 		events = {},
 		tanMap = {},
@@ -37,89 +37,92 @@ RedLocomotive('core', function(engine, options) {
 	(function loops(coreLoopTime) {
 
 		//if inactive
-		if (active) {
-			coreLoop(coreLoopTime);
-			secondaryLoop(coreLoopTime);
-		}
+		coreLoop(coreLoopTime);
+		secondaryLoop(coreLoopTime);
 
 		//get the next frame
 		requestAnimationFrame(loops);
 
 	})(new Date());
 
-	function coreLoop(coreLoopTime){
+	function coreLoop(time){
 
-		if(!lastCoreLoopTime) { lastCoreLoopTime = coreLoopTime; }
+		if(active) {
+			if(!lastCoreTime) { lastCoreTime = time; }
 
-		if (coreCycleDrift < 10) {
 
-			//count the number of cycles that should have occurred since the last
-			coreCycleDrift += (coreLoopTime - lastCoreLoopTime) / millisecondsPerFrame;
+			if (expectedFrames < 10) {
 
-		}
+				//count the number of cycles that should have occurred since the last
+				expectedFrames += (time - lastCoreTime) / millisecondsPerFrame;
 
-		//get the number of cycles for this loop
-		var clockCycles = Math.floor(coreCycleDrift);
-
-		//if there are cycles in this loop
-		if(clockCycles > 0) {
-
-			//run the clock for each cycle
-			for(var i = 0; i < clockCycles; i += 1) {
-
-				//call the core loop hook
-				newEvent('coreLoop');
-
-				//run the system clock
-				clock();
 			}
 
-			//update the frame counter
-			frameCount += 1;
+			//get the number of cycles for this loop
+			var clockCycles = Math.floor(expectedFrames);
 
-			//remove the elapsed cycles from the frameDrift
-			coreCycleDrift -= clockCycles;
-			
-			//draw once to each viewport
-			draw();
+			//if there are cycles in this loop
+			if(clockCycles > 0) {
+
+				//run the clock for each cycle
+				for(var i = 0; i < clockCycles; i += 1) {
+
+					//call the core loop hook
+					newEvent('coreLoop');
+
+					//run the system clock
+					clock();
+				}
+
+				//update the frame counter
+				frameCount += 1;
+
+				//remove the elapsed cycles from the frameDrift
+				expectedFrames -= clockCycles;
+
+				//draw once to each viewport
+				draw();
+			}
 		}
 
 		//save the last core loop time
-		lastCoreLoopTime = coreLoopTime;
+		lastCoreTime = time;
 
 	}
 
-	function secondaryLoop(coreLoopTime){
+	function secondaryLoop(time){
 
-		if(!lastSecondaryLoopTime) { lastSecondaryLoopTime = coreLoopTime; }
+		if(active) {
+			if(!lastSecondTime) { lastSecondTime = time; }
 
-		if (secondaryCycleDrift < 10) {
+			if (expectedSecCycles < 10) {
 
-			//count the number of cycles that should have occurred since the last
-			secondaryCycleDrift += (coreLoopTime - lastSecondaryLoopTime) / 1000;
+				//count the number of cycles that should have occurred since the last
+				expectedSecCycles += (time - lastSecondTime) / 1000;
 
-		}
-
-		var clockCycles = Math.floor(secondaryCycleDrift);
-
-		if(clockCycles > 0) {
-
-			for(var i = 0; i < clockCycles; i += 1) {
-
-				//call the second loop hook
-				newEvent('secLoop');
 			}
 
-			//remove the elapsed cycles from the frameDrift
-			secondaryCycleDrift -= clockCycles;
+			var clockCycles = Math.floor(expectedSecCycles);
 
-			//figure out the framerate
-			realFps = frameCount;
-			frameCount = 0;
+			if(clockCycles > 0) {
+
+				for(var i = 0; i < clockCycles; i += 1) {
+
+					//call the second loop hook
+					newEvent('secLoop');
+				}
+
+				//remove the elapsed cycles from the frameDrift
+				expectedSecCycles -= clockCycles;
+
+				//figure out the framerate
+				realFps = frameCount;
+				frameCount = 0;
+			}
 		}
 
 		//save the last core loop time
-		lastSecondaryLoopTime = coreLoopTime;
+		lastSecondTime = time;
 	}
 
 	//window focus
@@ -142,93 +145,114 @@ RedLocomotive('core', function(engine, options) {
 
 	/**
 	 * Returns the distance from an x and y offset
-	 * @param xDistance
-	 * @param yDistance
+	 * @param x
+	 * @param y
 	 */
-	function distance(xDistance, yDistance) {
+	function distance(x, y) {
 
-		xDistance = xDistance < 0 ? -xDistance : xDistance;
-		yDistance = yDistance < 0 ? -yDistance : yDistance;
+		x = x < 0 ? -x : x;
+		y = y < 0 ? -y : y;
 
 		//use pythagoras theorem to find the distance.
-		return Math.round(Math.sqrt(Math.pow(yDistance, 2) + Math.pow(xDistance, 2)) * 100) / 100;
+		return Math.sqrt(Math.pow(y, 2) + Math.pow(x, 2));
 
+	}
+
+	function quad(x, y) {
+
+		if(x > -1) {
+			if(y < 0) {
+				//q0
+				return {
+					'q': 0,
+					'o': x,
+					'a': -y
+				}
+			}
+			else{
+				//q1
+				return {
+					'q': 1,
+					'o': y,
+					'a': x
+				}
+			}
+		} else {
+			if(y > -1) {
+				//q2
+				return {
+					'q': 2,
+					'o': -x,
+					'a': y
+				}
+			}
+			else{
+				//q3
+				return {
+					'q': 3,
+					'o': y,
+					'a': -x
+				}
+			}
+		}
+	}
+
+	function aquad(degree, o, a) {
+
+		if(degree < 90) {
+			//q0
+			return {
+				'x': o,
+				'y': -a
+			}
+		} else if (degree < 180) {
+			//q1
+			return {
+				'x': a,
+				'y': o
+			}
+		} else if (degree < 270) {
+			//q2
+			return {
+				'x': -o,
+				'y': a
+			}
+		} else {
+			//q3
+			return {
+				'x': -a,
+				'y': -o
+			}
+		}
+	}
+
+	function degree90(a, b) {
+
+		//rectify a and b
+		a = a < 0 ? -a : a;
+		b = b < 0 ? -b : b;
+
+		return engine.atan(a / b);
 	}
 
 	/**
 	 * Returns degree of an x and y offset.
-	 * @param xDistance
-	 * @param yDistance
+	 * @param x
+	 * @param y
 	 */
-	function degree(xDistance, yDistance) {
+	function degree(x, y) {
 
-		//if the distance is along x or y return the degree without using trig
-		//
-		//if the object is stationary return 0
-		if (xDistance === 0 && yDistance === 0) {
-			return 0;
+		//quadrify x and y
+		var t = quad(x, y);
 
-		//if moving along the y axis
-		} else if(xDistance === 0) {
+		return degree90(t.o, t.a) + (90 * t.q);
 
-			//return 0 for up
-			if(yDistance < 0) {
-				return 0;
-
-			//return 180 for down
-			} else {
-				return 180;
-			}
-
-		//if moving along the x axis
-		} else if (yDistance === 0) {
-
-			//return 90 for right
-			if(xDistance > 0) {
-				return 90;
-
-			//return 270 for left
-			} else {
-				return 270;
-			}
-		}
-
-		//prepare some variables for the trig based method
-		var quad, decimal;
-
-		//figure out the quadrant
-		if (xDistance >= 0 && yDistance < 0) {
-			quad = 0;
-		} else if(xDistance > 0 && yDistance >= 0) {
-			quad = 1;
-		} else if(xDistance <= 0 && yDistance > 0) {
-			quad = 2;
-		} else if(xDistance < 0 && yDistance <= 0) {
-			quad = 3;
-		}
-
-		//inverse negative axis
-		xDistance = xDistance < 0 ? -xDistance : xDistance;
-		yDistance = yDistance < 0 ? -yDistance : yDistance;
-
-		//get the decimal for atan
-		switch (quad) {
-			case 0:
-			case 2:
-				decimal = yDistance / xDistance;
-			break;
-			case 1:
-			case 3:
-				decimal = xDistance / yDistance;
-			break;
-		}
-
-		//use arc tangent to find the degree of ascent.
-		return (Math.round((engine.atan(decimal)) * 100) / 100) + (90 * quad);
 	}
 
 	function vector(xDistance, yDistance) {
 		return [degree(xDistance, yDistance), distance(xDistance, yDistance)];
+
+
 	}
 
 	/**
@@ -238,41 +262,17 @@ RedLocomotive('core', function(engine, options) {
 	 */
 	function coords(degree, distance) {
 
-		//throw an error if greater than 360 or less than 0
-		if (degree >= 360) {
-			degree /= degree / 360;
-		} else if (degree < 0) {
-			degree *= -degree / 360;
-		}
+		//if the distance is less than one whole pixel then return 0 x 0 y;
+		if(distance < 1) { return {'x': 0, 'y': 0} }
 
-		var quad = Math.floor(degree / 90);
-		degree -= 90 * quad;
+		var degree90 = degree % 90;
 
-		var x = 0, y = 0;
+		//get the opposite and adjacent
+		var o = Math.round(sin(degree90) * distance),
+			a = Math.round(cos(degree90) * distance);
 
-		switch (quad) {
-			case 0:
-				y = -cos(degree) * distance;
-				x = sin(degree) * distance;
-				break;
-			case 1:
-				y = sin(degree) * distance;
-				x = cos(degree) * distance;
-				break;
-			case 2:
-				y = cos(degree) * distance;
-				x = -sin(degree) * distance;
-				break;
-			case 3:
-				y = -sin(degree) * distance;
-				x = -cos(degree) * distance;
-				break;
-		}
-
-		x = Math.round(x * 10) / 10;
-		y = Math.round(y * 10) / 10;
-
-		return {"x": x, "y": y};
+		//interse quadrify
+		return aquad(degree, o, a);
 	}
 
 	function tan(input) {
@@ -348,6 +348,56 @@ RedLocomotive('core', function(engine, options) {
 		return newTimer('interval', frames, callback, startNow);
 	}
 
+	function newTimer(type, frames, callback, startNow) {
+		var id,
+			counter;
+
+		/**
+		 * Removes the new timer
+		 */
+		function remove() {
+			if (timers[id]) {
+				delete timers[id];
+			}
+		}
+
+		/**
+		 * Changes the frame rate
+		 * @param frames
+		 */
+		function setFrames(frames) {
+			if (timers[id] && frames) {
+				timers[id].frames = frames;
+			}
+		}
+
+		if (type === 'interval' || type === 'timeout') {
+
+			id = idGen();
+
+			if (startNow) {
+				counter = frames;
+			} else {
+				counter = 1;
+			}
+
+			timers[id] = {
+				"type": type,
+				"frames": frames,
+				"counter": counter,
+				"callback": callback
+			};
+
+			return {
+				"clear": remove,
+				"setFrames": setFrames
+			}
+
+		}
+
+		return false;
+	}
+
 	/**
 	 * newEvent - Executes a set of action by newEvent name.
 	 * @param eventName {string} The event name.
@@ -416,56 +466,6 @@ RedLocomotive('core', function(engine, options) {
 		return false;
 	}
 
-	function newTimer(type, frames, callback, startNow) {
-		var id,
-			counter;
-
-		/**
-		 * Removes the new timer
-		 */
-		function remove() {
-			if (timers[id]) {
-				delete timers[id];
-			}
-		}
-
-		/**
-		 * Changes the frame rate
-		 * @param frames
-		 */
-		function setFrames(frames) {
-			if (timers[id] && frames) {
-				timers[id].frames = frames;
-			}
-		}
-
-		if (type === 'interval' || type === 'timeout') {
-
-			id = idGen();
-
-			if (startNow) {
-				counter = frames;
-			} else {
-				counter = 1;
-			}
-
-			timers[id] = {
-				"type": type,
-				"frames": frames,
-				"counter": counter,
-				"callback": callback
-			};
-
-			return {
-				"clear": remove,
-				"setFrames": setFrames
-			}
-
-		}
-
-		return false;
-	}
-
 	function newCallCounter(iterations, callback) {
 		
 		var args = Array.prototype.slice.call(arguments, 2),
@@ -496,10 +496,10 @@ RedLocomotive('core', function(engine, options) {
 	 * Draws everything!!!
 	 */
 	function draw() {
-
+		
 		var viewports = engine.viewport.get('all'),
-			viewport,
 			elements = engine.element.get('all'),
+			viewport,
 			element,
 			x,
 			y,
@@ -559,6 +559,17 @@ RedLocomotive('core', function(engine, options) {
 
 							//get the element
 							element = stack[z][i];
+
+							//Errors
+							if(typeof element.spriteSheet !== 'object') { throw new Error('Element "' + element.name + '" does not have a spriteSheet.'); }
+							if(typeof element.spriteSheet.sprites !== 'object') { throw new Error('SpriteSheet "' + element.spriteSheet.name + '" does not have a sprites array.'); }
+							if(typeof element.spritePos !== 'object') { throw new Error('Element "' + element.name + '" does not have a spritePos array.'); }
+							if(typeof element.spritePos[0] !== 'number') { throw new Error('Element "' + element.name + '"\'s spritePos array doesn\'t have an X position.'); }
+							if(typeof element.spritePos[1] !== 'number') { throw new Error('Element "' + element.name + '"\'s spritePos array doesn\'t have a Y position.'); }
+							if(typeof element.spriteSheet.sprites[element.spritePos[0]] !== 'object') { throw new Error('SpriteSheet "' + element.spriteSheet.name + '" does not have a sprite at "' + element.spritePos[0] + '" X.'); }
+							if(typeof element.spriteSheet.sprites[element.spritePos[0]][element.spritePos[1]] !== 'object') { throw new Error('SpriteSheet "' + element.spriteSheet.name + '" does not have a sprite at "' + element.spritePos[0] + '" X and "' + element.spritePos[1] + '" Y.'); }
+							if(typeof element.spriteSheet.sprites[element.spritePos[0]][element.spritePos[1]].canvas[0] !== 'object') { throw new Error('SpriteSheet "' + element.spriteSheet.name + '"\'s sprite at "' + element.spritePos[0] + '" X and "' + element.spritePos[1] + '" Y does not have a bitmap.'); }
+
 
 							//x and y
 							x = element.x - viewport.x;

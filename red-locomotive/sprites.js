@@ -48,6 +48,7 @@ RedLocomotive('sprites', function(engine, options) {
 		        var bitmap = engine.bitmap.create(image[0].width, image[0].height, image[0]),
 		            sprites = engine.bitmap.slice(bitmap, width, height),
 					spriteSheet = {
+						"name": name,
 						"bitmap": bitmap,
 						"sprites": sprites
 					};
