@@ -191,6 +191,9 @@ RedLocomotive('bitmaps', function(){
 
 		if(x >= 0 && y >= 0 && x < bitmap.canvas[0].width && y < bitmap.canvas[0].height){
 
+			x = Math.floor(x);
+			y = Math.floor(y);
+
 			var collisionMaskPixelData = dump(bitmap),
 				currentPixel = x + (y * bitmap.canvas[0].width);
 

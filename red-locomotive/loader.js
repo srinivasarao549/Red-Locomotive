@@ -41,9 +41,7 @@ if(typeof jQuery === "undefined") {
 
 	var engine = {},
 		modules = {},
-		corelibs = [
-			"lib/shims/requestAnimationFrame.js"
-		],
+		corelibs = [],
 		coreModules = [
 			"core",
 			"controls",
@@ -64,7 +62,6 @@ if(typeof jQuery === "undefined") {
 	 * @param callback {function} [optional] A function to be executed after the requested script has been loaded.
 	 */
 	function loadScript(url, callback) {
-
 		function exec () {
 			if (i < url.length) {
 				i += 1;
@@ -76,6 +73,10 @@ if(typeof jQuery === "undefined") {
 		//if a single script is requested then load it
 		if (typeof url === 'object') {
 			var i = 1;
+
+			if(!url.length && typeof callback === 'function') {
+				callback();
+			}
 
 			//load each module
 			for(var ii = 0; ii < url.length; ii += 1) {
@@ -181,29 +182,24 @@ if(typeof jQuery === "undefined") {
 				//set the engine options
 				options = input;
 
-				//get the libs
-				loadScript(corelibs, function() {
+				//get the core modules
+				require(coreModules, function () {
 
-					//get the core modules
-					require(coreModules, function () {
+					var required = options.require,
+						spriteSheets = options.spriteSheets,
+						count = (required && required.length && 1 || 0) + (spriteSheets && spriteSheets.length && 1 || 0),
+						counter = engine.callCounter(count, function () {
+							engine.start();
+							callback(engine);
+						});
 
-						var required = options.require,
-							spriteSheets = options.spriteSheets,
-							count = (required && required.length && 1 || 0) + (spriteSheets && spriteSheets.length && 1 || 0),
-							counter = engine.callCounter(count, function () {
-								engine.start();
-								callback(engine);
-							});
+					if(required && required.length) {
+						require(required, counter);
+					}
 
-						if(required && required.length) {
-							require(required, counter);
-						}
-
-						if(spriteSheets && spriteSheets.length) {
-							engine.spriteSheet.create(spriteSheets, counter);
-						}
-
-					}, true);
+					if(spriteSheets && spriteSheets.length) {
+						engine.spriteSheet.create(spriteSheets, counter);
+					}
 				});
 			}
 		}

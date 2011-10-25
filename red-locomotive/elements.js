@@ -25,7 +25,16 @@ RedLocomotive("elements", function(engine, options) {
 	 * @param cMR
 	 */
     function newElement(elementName, spriteSheet, x, y, z, sPC, sPR, cMC, cMR) {
-		
+
+		//prevent half number errors
+		x = Math.floor(x);
+		y = Math.floor(y);
+		z = Math.floor(z);
+		sPC = Math.floor(sPC);
+		sPR = Math.floor(sPR);
+		cMC = Math.floor(cMC);
+		cMR = Math.floor(cMR);
+
 		if(elementName !== 'all') {
 
 			if(spriteSheet && typeof spriteSheet === 'string') {

@@ -455,9 +455,13 @@ RedLocomotive('controls', function (engine, options) {
 	function onHoverBase(element, viewport, callback, endCallback, minAlpha) {
 		var isIn = false;
 
+		function clear() {
+			viewport.bitmap.canvas.unbind('mousemove.' + element.name + viewport.name);
+		}
+
 		if(typeof callback === 'function') {
 
-			viewport.bitmap.canvas.bind('mousemove.' + element.name, function(event){
+			viewport.bitmap.canvas.bind('mousemove.' + element.name + viewport.name, function(event){
 				
 				//run the callback if all event requirements have been met
 				if(!isIn && cursorIsInElement(element, viewport.cursor.x, viewport.cursor.y, minAlpha)) {
@@ -472,33 +476,44 @@ RedLocomotive('controls', function (engine, options) {
 					}
 				}
 			});
+
+			return {
+				'clear': clear
+			}
 		}
 	}
 
 	function onHover(element, viewport, callback, endCallback) {
-		onHoverBase(element, viewport, callback, endCallback, false);
+		return onHoverBase(element, viewport, callback, endCallback, false);
 	}
 
 	function onAlphaHover(element, viewport, alpha, callback, endCallback) {
-		onHoverBase(element, viewport, callback, endCallback, alpha);
+		return onHoverBase(element, viewport, callback, endCallback, alpha);
 	}
 
 	function onClickBase(element, viewport, callback, endCallback, button, minAlpha) {
 		var isIn = false;
 
+		function clear() {
+			viewport.bitmap.canvas.unbind('mousedown.' + element.name + viewport.name);
+			viewport.bitmap.canvas.unbind('mouseup.' + element.name + viewport.name);
+		}
+
 		if(typeof callback === 'function' && (!button || button === event.which)) {
 
 			//ON MOUSE IN
-			viewport.bitmap.canvas.bind('mousedown.' + element.name, function(event){
+			viewport.bitmap.canvas.bind('mousedown.' + element.name + viewport.name, function(event){
+
 				//run the callback if all event requirements have been met
 				if(cursorIsInElement(element, viewport.cursor.x, viewport.cursor.y, minAlpha)) {
+
 					isIn = true;
 					callback(event);
 				}
 			});
 
 			//ON MOUSE OUT
-			viewport.bitmap.canvas.bind('mouseup.' + element.name, function (event) {
+			viewport.bitmap.canvas.bind('mouseup.' + element.name + viewport.name, function (event) {
 				if(isIn && cursorIsInElement(element, viewport.cursor.x, viewport.cursor.y, minAlpha)) {
 					isIn = false;
 
@@ -507,39 +522,43 @@ RedLocomotive('controls', function (engine, options) {
 					}
 				}
 			});
+
+			return {
+				'clear': clear
+			}
 		}
 	}
 
 	function onClick(element, viewport, callback, endCallback) {
-		onClickBase(element, viewport, callback, endCallback, false, false);
+		return onClickBase(element, viewport, callback, endCallback, false, false);
 	}
 
 	function onLeftClick(element, viewport, callback, endCallback) {
-		onClickBase(element, viewport, callback, endCallback, 1, false);
+		return onClickBase(element, viewport, callback, endCallback, 1, false);
 	}
 
 	function onMiddleClick(element, viewport, callback, endCallback) {
-		onClickBase(element, viewport, callback, endCallback, 2, false);
+		return onClickBase(element, viewport, callback, endCallback, 2, false);
 	}
 
 	function onRightClick(element, viewport, callback, endCallback) {
-		onClickBase(element, viewport, callback, endCallback, 3, false);
+		return onClickBase(element, viewport, callback, endCallback, 3, false);
 	}
 
 	function onAlphaClick(element, viewport, alpha, callback, endCallback) {
-		onClickBase(element, viewport, callback, endCallback, false, alpha);
+		return onClickBase(element, viewport, callback, endCallback, false, alpha);
 	}
 
 	function onAlphaLeftClick(element, viewport, alpha, callback, endCallback) {
-		onClickBase(element, viewport, callback, endCallback, 1, alpha);
+		return onClickBase(element, viewport, callback, endCallback, 1, alpha);
 	}
 
 	function onAlphaMiddleClick(element, viewport, alpha, callback, endCallback) {
-		onClickBase(element, viewport, callback, endCallback, 2, alpha);
+		return onClickBase(element, viewport, callback, endCallback, 2, alpha);
 	}
 
 	function onAlphaRightClick(element, viewport, alpha, callback, endCallback) {
-		onClickBase(element, viewport, callback, endCallback, 3, alpha);
+		return onClickBase(element, viewport, callback, endCallback, 3, alpha);
 	}
 
 	return {

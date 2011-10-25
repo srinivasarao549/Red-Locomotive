@@ -53,9 +53,18 @@ RedLocomotive('viewports', function(engine, options){
 				viewportWidth = bitmap.canvas[0].width,
 				viewportHeight = bitmap.canvas[0].height;
 
-			viewport.cursor.x = Math.round(DOMX * viewportWidth / DOMWidth);
-			viewport.cursor.y = Math.round(DOMY * viewportHeight / DOMHeight);
+			viewport.cursor.x = Math.round(DOMX * viewportWidth / DOMWidth) + viewport.x;
+			viewport.cursor.y = Math.round(DOMY * viewportHeight / DOMHeight) + viewport.y;
 
+		});
+
+		engine.every(function(){
+			if(viewport.width !== bitmap.canvas[0].width) {
+				bitmap.canvas[0].width = viewport.width;
+			}
+			if(viewport.height !== bitmap.canvas[0].height) {
+				bitmap.canvas[0].height = viewport.height;
+			}
 		});
 
 		engine.event('createViewport', viewport);

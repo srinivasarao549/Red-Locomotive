@@ -27,10 +27,9 @@ RedLocomotive('animations', function(engine, options) {
 
 		//for each frame move the element
 		var clearAni = engine.every(function(){
-
-			console.log(1);
 			
 			if(iF < frames) {
+				iF += 1;
 
 				//calculate the distance to our goal
 				var vector = engine.vector(endX - element.x, endY - element.y);
@@ -45,7 +44,6 @@ RedLocomotive('animations', function(engine, options) {
 				element.x += coords.x;
 				element.y += coords.y;
 
-				iF += 1;
 			} else {
 				clear();
 			}
