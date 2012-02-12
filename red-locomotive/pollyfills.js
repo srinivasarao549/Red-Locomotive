@@ -1,6 +1,8 @@
 define(function() {
 
-	function pollyFill() {
+	pollyfill.namespace = "pollyfills";
+
+	function pollyfill() {
 
 		var activePollyFills = {};
 
@@ -28,6 +30,6 @@ define(function() {
 
 	}
 
-	return pollyFill;
+	return pollyfill;
 
 });

@@ -4,8 +4,6 @@ require(['../red-locomotive/red-locomotive'], function(RedLocomotive) {
 		"baseUrl": "../"
 	}, function(engine) {
 
-		console.log(engine);
-
 		module('Kernel (red-locomotive)');
 
 		test("Engine instance", 3, function() {
@@ -16,27 +14,28 @@ require(['../red-locomotive/red-locomotive'], function(RedLocomotive) {
 		});
 
 		test("extend", 12, function() {
+			var object1, object2, result;
 
-			var object1 = {
-					"armOne": {
-						"one": "blue",
-						"two": "green",
-						"five": {
-							"cake": "is a lie"
-						}
-					},
-					"secondary": {}
+			object1 = {
+				"armOne": {
+					"one": "blue",
+					"two": "green",
+					"five": {
+						"cake": "is a lie"
+					}
 				},
-				object2 = {
-					"armOne": {
-						"five": [1, 2, 3, 4, 5]
-					},
-					"armTwo": {
-						"one": 1
-					},
-					"secondary": "49th and Second St."
+				"secondary": {}
+			};
+
+			object2 = {
+				"armOne": {
+					"five": [1, 2, 3, 4, 5]
 				},
-				result;
+				"armTwo": {
+					"one": 1
+				},
+				"secondary": "49th and Second St."
+			};
 
 			equals(typeof engine.extend, 'function', "Engine should have an .extend() method for creating merged objects.");
 
@@ -57,26 +56,28 @@ require(['../red-locomotive/red-locomotive'], function(RedLocomotive) {
 		});
 
 		test("merge", 12, function() {
+			var object1, object2;
 
-			var object1 = {
-					"armOne": {
-						"one": "blue",
-						"two": "green",
-						"five": {
-							"cake": "is a lie"
-						}
-					},
-					"secondary": {}
+			object1 = {
+				"armOne": {
+					"one": "blue",
+					"two": "green",
+					"five": {
+						"cake": "is a lie"
+					}
 				},
-				object2 = {
-					"armOne": {
-						"five": [1, 2, 3, 4, 5]
-					},
-					"armTwo": {
-						"one": 1
-					},
-					"secondary": "49th and Second St."
-				};
+				"secondary": {}
+			};
+
+			object2 = {
+				"armOne": {
+					"five": [1, 2, 3, 4, 5]
+				},
+				"armTwo": {
+					"one": 1
+				},
+				"secondary": "49th and Second St."
+			};
 
 			equals(typeof engine.merge, 'function', "Engine should have a .merge() method for merging existing objects.");
 
@@ -97,12 +98,13 @@ require(['../red-locomotive/red-locomotive'], function(RedLocomotive) {
 		});
 
 		test(".event.emitter()", 6, function() {
+			var emitter, sum, cleared;
 
 			equals(typeof engine.event.emitter, 'function', "Engine should have an .event.emitter() method for creating event emitters.");
 
-			var emitter = engine.event.emitter(),
-				sum = 0,
-				cleared = true;
+			emitter = engine.event.emitter();
+			sum = 0;
+			cleared = true;
 
 			equals(typeof emitter.on, 'function', "Emitter should have .on() method for binding to emitter events.");
 			equals(typeof emitter.trigger, 'function', "Emitter should have .trigger() method for binding to emitter events.");
@@ -135,12 +137,14 @@ require(['../red-locomotive/red-locomotive'], function(RedLocomotive) {
 		module('Core');
 
 		asyncTest(".event.loop()", 7, function() {
+			var loop1, loop2, cycles1, cycles2;
+
 			equals(typeof engine.event.loop, 'function', "Engine should have an .event.loop() method for creating event loops.");
 
-			var loop1 = engine.event.loop(100),
-				loop2 = engine.event.loop(100),
-				cycles1 = 0,
-				cycles2 = 0;
+			loop1 = engine.event.loop(100);
+			loop2 = engine.event.loop(100);
+			cycles1 = 0;
+			cycles2 = 0;
 
 			equals(typeof loop1.on, 'function', "Loop should have an .on() method for binding to loop events.");
 			equals(typeof loop1.start, 'function', "Loop should have a .start() method for starting the loop.");
@@ -172,10 +176,11 @@ require(['../red-locomotive/red-locomotive'], function(RedLocomotive) {
 		});
 
 		asyncTest(".after", 4, function() {
+			var cycles;
 
 			equals(typeof engine.after, 'function', "Engine should have an .after() method for binding a callback to execute after a set number of cycles.");
 
-			var cycles = 0;
+			cycles = 0;
 
 			engine.after(function(date) {
 				ok(true, 'Engine should have a .after() method to schedule a callback after a set number of frames.');
@@ -193,12 +198,11 @@ require(['../red-locomotive/red-locomotive'], function(RedLocomotive) {
 		});
 
 		asyncTest(".every", 3, function() {
+			var cycles1, every1, every2;
 
 			equals(typeof engine.every, 'function', "Engine should have an .every() method for binding a callback to execute every cycle.");
 
-			var cycles1 = 0,
-				every1,
-				every2;
+			cycles1 = 0;
 
 			every1 = engine.every(function() {
 				cycles1 += 1;
@@ -224,11 +228,26 @@ require(['../red-locomotive/red-locomotive'], function(RedLocomotive) {
 
 		module("Elements");
 
-		test(".element", function() {
+		test(".element", 12, function() {
+			var element;
 
 			equals(typeof engine.element, 'function', "Engine should have an .element() method for creating new elements.");
 
-			//var element = engine.element('testElement', {}, 0, 0, 0, 0, 0);
+			element = engine.element('testElement', {}, 34, 12, 0, 1, 3);
+
+			equals(typeof element.move, 'function', "Elements should have a .move() method for moving the element.");
+			equals(typeof element.x, 'function', "Elements should have an .x() method for getting/setting the element's x axis.");
+			equals(typeof element.y, 'function', "Elements should have a .y() method for getting/setting the element's y axis.");
+			equals(typeof element.z, 'function', "Elements should have a .z() method for getting/setting the element's z axis.");
+			equals(typeof element.hide, 'function', "Elements should have an .hide() method for hiding the element.");
+			equals(typeof element.show, 'function', "Elements should have an .show() method for showing the element.");
+			equals(typeof element.data, 'function', "Elements should have an .data() method for getting/setting data attached to the element.");
+			equals(typeof element.sprite, 'function', "Elements should have a .sprite() method for getting/setting the current sprite.");
+
+
+			equals(element.x(), 34, "Test element x should equal 34.");
+			equals(element.y(), 12, "Test element y should equal 12.");
+			equals(element.z(), 0, "Test element z should equal 0.");
 
 		});
 
