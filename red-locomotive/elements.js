@@ -6,7 +6,7 @@ define(function() {
 
 	return init;
 
-	function init(engine, db, config) {
+	function init(engine, data) {
 
 		var api = {
 			"element": Element
@@ -60,7 +60,7 @@ define(function() {
 			};
 
 			//add the element to the elements object
-			db.set('elements', [element], 'merge');
+			data.elements.push(element);
 
 			//return the api
 			return api;

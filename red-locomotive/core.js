@@ -1,4 +1,4 @@
-define(function(engine, data, config) {
+define(function() {
 
 	//set the namespace to the root
 	init.namespace = '';
@@ -10,55 +10,43 @@ define(function(engine, data, config) {
 	 * Initialises the core module
 	 * @param engine
 	 */
-	function init(engine) {
+	function init(engine, data) {
+		var api, fpms, coreLoop;
 
-		var api = {
-			"event": {
-				"loop": EventLoop
-			},
+		//set the fpms
+		fpms = (1000 / data.config.fps) || 1;
+
+		//create the core loop
+		coreLoop = data.coreLoop = EventLoop(fpms);
+
+		//run the loop once all the modules have loaded
+		engine.on('ready', coreLoop.start);
+
+		//pipe the core loop events to the core emitter
+		data.emitter.pipe(coreLoop);
+
+		api = {
+			"loop": EventLoop,
 			"every": every,
 			"after": after
 		};
-
-		//set the fpms
-		var fpms = Math.round(1000 / config.fps);
-
-		//create the core loop
-		data.coreLoop = EventLoop(fpms);
-
-		//run the loop once all the modules have loaded
-		engine.on('ready', data.coreLoop.start);
-
-		//bind the core loop events to the core emitter
-		data.coreLoop.on('cycle', function(     ) {
-			var args = Array.prototype.slice.apply(arguments);
-			args.unshift('cycle');
-
-			engine.trigger.apply(this, args);
-		});
-		data.coreLoop.on('every', function(    ) {
-			var args = Array.prototype.slice.apply(arguments);
-			args.unshift('every');
-
-			engine.trigger.apply(this, args);
-		});
 
 		//return the api
 		return api;
 
 		/**
 		 * Creates an event loop
-		 * @param interval
+		 * @param loopInterval
 		 */
-		function EventLoop(interval) {
+		function EventLoop(loopInterval) {
 
 			//set defaults
-			interval = interval || 1;
+			loopInterval = loopInterval || 1;
 
 			//validate arguments
-			if(typeof interval !== 'number') { throw new Error('Event loop interval must be a number.'); }
+			if(typeof loopInterval !== 'number') { throw new Error('Event loop interval must be a number.'); }
 
-			var emitter = engine.event.emitter(),
+			var emitter = engine.emitter(),
 				active = false,
 				lastTime = false,
 				scheduledCycles = 0,
@@ -67,7 +55,7 @@ define(function(engine, data, config) {
 					"on": emitter.on,
 					"start": start,
 					"stop": stop,
-					"setInterval": setInterval
+					"interval": interval
 				};
 
 			//execute the loop
@@ -87,7 +75,7 @@ define(function(engine, data, config) {
 
 					//add additional scheduled cycles if the expected frames is below ten
 					if (scheduledCycles < 10) {
-						scheduledCycles += (time - lastTime) / interval;
+						scheduledCycles += (time - lastTime) / loopInterval;
 					}
 
 					//get the number of expected cycles
@@ -133,11 +121,18 @@ define(function(engine, data, config) {
 
 			/**
 			 * Set the loop interval
-			 * @param _interval
+			 * @param fpms
 			 */
-			function setInterval(_interval) {
-				if(typeof _interval !== 'number') { throw new Error('Event loop interval must be a number.'); }
-				interval = _interval;
+			function interval(fpms) {
+
+				//validate
+				if(fpms && typeof fpms !== 'number') { throw new Error('Cannot set loop interval. If given the fpms must be a number.'); }
+
+				if(fpms) {
+					return loopInterval = fpms;
+				} else {
+					return loopInterval;
+				}
 			}
 		}
 
