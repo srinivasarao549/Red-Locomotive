@@ -7,22 +7,30 @@ define(function() {
 	return init;
 
 	function init(engine, data) {
+		var api, elements;
 
 		var api = {
 			"element": Element
 		};
 
+		//create the elements array
+		elements = [];
+
+		//save the elements object to the data object
+		data.elements = elements;
+
 		return api;
 
 		function Element(id, sprites, x, y, z, sC, sR) {
+			var visible, element, api;
 
 			//set defaults
 			sprites = sprites || false;
 			x = x || 0;
 			y = y || 0;
 			z = z || 0;
-			sC = sC || false;
-			sR = sR || false;
+			sC = sC || 0;
+			sR = sR || 0;
 
 			//validate the arguments
 			if(typeof id !== 'string') { throw new Error('Element id must be a string.'); }
@@ -33,16 +41,17 @@ define(function() {
 			if(typeof sC !== 'number') { throw new Error('Element sC must be a number.'); }
 			if(typeof sR !== 'number') { throw new Error('Element sR must be a number.'); }
 
-			var visible = false,
-				element,
-				api = {
-					"move": move,
-					"x": x,
-					"y": y,
-					"z": z,
-					"hide": hide,
-					"show": show
-				};
+			visible = false;
+			api = {
+				"move": move,
+				"x": posX,
+				"y": posY,
+				"z": posZ,
+				"hide": hide,
+				"show": show,
+				"sprite": currentSprite,
+				"data": elementData
+			};
 
 			//figure out if the element should be visible
 			if(sprites) { visible = true; }
@@ -86,39 +95,110 @@ define(function() {
 			 * Moves the element on the x axis
 			 * @param x
 			 */
-			function x(x) {
+			function posX(x) {
 
-				//validate
-				if(typeof x !== 'number') { throw new Error('Element x must be a number.'); }
+				if(x) {
 
-				//update the x coord
-				element.coords.x = x;
+					//validate
+					if(typeof x !== 'number') { throw new Error('Element x must be a number.'); }
+
+					//update the x coord
+					element.coords.x = x;
+
+					return true;
+
+				} else {
+
+					return element.coords.x;
+
+				}
 			}
 
 			/**
 			 * Moves the element on the y axis
 			 * @param y
 			 */
-			function y(y) {
+			function posY(y) {
 
-				//validate
-				if(typeof y !== 'number') { throw new Error('Element y must be a number.'); }
+				if(y) {
 
-				//update the y coord
-				element.coords.y = y;
+					//validate
+					if(typeof y !== 'number') { throw new Error('Element y must be a number.'); }
+
+					//update the y coord
+					element.coords.y = y;
+
+					return true;
+
+				} else {
+
+					return element.coords.y;
+
+				}
 			}
 
 			/**
 			 * Moves the element on the z axis
 			 * @param z
 			 */
-			function z(z) {
+			function posZ(z) {
 
-				//validate
-				if(typeof z !== 'number') { throw new Error('Element z must be a number.'); }
+				if(z) {
+					
+					//validate
+					if(typeof z !== 'number') { throw new Error('Element z must be a number.'); }
 
-				//update the z coord
-				element.coords.z = z;
+					//update the z coord
+					element.coords.z = z;
+
+					return true;
+
+				} else {
+
+					return element.coords.z;
+
+				}
+			}
+			
+			function currentSprite(sC, sR) {
+				
+				if(sC && sR) {
+					
+					if(typeof sC !== 'number') { throw new Error('Element sC must be a number.'); }
+					if(typeof sR !== 'number') { throw new Error('Element sR must be a number.'); }
+					
+					element.sprite.column = sC;
+					element.sprite.row = sR;
+					
+					return true;
+					
+				} else {
+
+					return {"column": element.sprite.column, "row": element.sprite.row };
+
+				}
+				
+			}
+
+			function elementData(key, value) {
+
+				if(typeof key !== 'string') { throw new Error('Cannot read/write data to element. The data key must be a string.'); }
+
+				//read
+				if(typeof value === 'undefined') {
+
+					//read the data from the key
+					return typeof element.data[key] === 'undefined' && false || element.data[key];
+
+
+				//write
+				} else {
+
+					//write the data to the key
+					element.data[key] = value;
+
+					return true;
+				}
 			}
 
 			/**
@@ -135,7 +215,6 @@ define(function() {
 				element.visible = true;
 			}
 		}
-
 	}
 
 });
