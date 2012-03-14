@@ -7,34 +7,90 @@
 	}
 
 })(this, function () {
+	var statusCodes, coreModules, version, tanMap, sinMap, cosMap, atanMap, asinMap, acosMap;
+
+	/////////////////////
+	//    POLYFILLS    //
+	/////////////////////
+
+	//polyfills for ms's piece o' shit browsers
+	[].indexOf||(Array.prototype.indexOf=function(a,b,c){for(c=this.length,b=(c+~~b)%c;b<c&&(!(b in this)||this[b]!==a);b++);return b^c?b:-1;});
+	[].forEach||(Array.prototype.forEach=function(a){var b;if(typeof a!=='function'){throw new Error(a+' is not a function.')}for(b=0;b<this.length;b+=1){a(this[b], a, this)}});
+	Date.now||(Date.now=function(){return(new Date()).getTime()});
+
+	/////////////////////
+	//    CONSTANTS    //
+	/////////////////////
+	statusCodes = {
+		200: {'name': 'ok', 'type': 'success'},
+		201: {'name': 'created', 'type': 'success'},
+		202: {'name': 'accepted', 'type': 'success'},
+		204: {'name': 'nocontent', 'type': 'success'},
+		205: {'name': 'resetcontent', 'type': 'success'},
+		206: {'name': 'partialcontent', 'type': 'success'},
+		300: {'name': 'multiplechoices', 'type': 'redirection'},
+		301: {'name': 'movedpermanently', 'type': 'redirection'},
+		304: {'name': 'notmodified', 'type': 'redirection'},
+		308: {'name': 'resumeincomplete', 'type': 'redirection'},
+		400: {'name': 'badrequest', 'type': 'error'},
+		401: {'name': 'unauthorized', 'type': 'error'},
+		403: {'name': 'forbidden', 'type': 'error'},
+		404: {'name': 'notfound', 'type': 'error'},
+		405: {'name': 'methodnotallowed', 'type': 'error'},
+		406: {'name': 'notacceptable', 'type': 'error'},
+		407: {'name': 'proxyauthenticationrequired', 'type': 'error'},
+		408: {'name': 'requesttimedout', 'type': 'error'},
+		409: {'name': 'conflict', 'type': 'error'},
+		410: {'name': 'gone', 'type': 'error'},
+		411: {'name': 'lengthrequired', 'type': 'error'},
+		412: {'name': 'preconditionfailed', 'type': 'error'},
+		413: {'name': 'requestentitytoolarge', 'type': 'error'},
+		414: {'name': 'requesturitoolong', 'type': 'error'},
+		415: {'name': 'unsupportedmediatype', 'type': 'error'},
+		416: {'name': 'requestedrangenotsatisfiable', 'type': 'error'},
+		417: {'name': 'expectationfailed', 'type': 'error'},
+		428: {'name': 'preconditionrequired', 'type': 'error'},
+		429: {'name': 'toomanyrequests', 'type': 'error'},
+		431: {'name': 'requestheaderfieldstoolarge', 'type': 'error'},
+		444: {'name': 'noresponse', 'type': 'error'},
+		449: {'name': 'retrywith', 'type': 'error'},
+		450: {'name': 'blockedbyparentalcontrols', 'type': 'error'},
+		499: {'name': 'clientclosedrequest', 'type': 'error'},
+		500: {'name': 'clientclosedrequest', 'type': 'servererror'},
+		501: {'name': 'notimplemented', 'type': 'servererror'},
+		502: {'name': 'badgateway', 'type': 'servererror'},
+		503: {'name': 'serviceunavailable', 'type': 'servererror'},
+		504: {'name': 'gatewaytimeout', 'type': 'servererror'},
+		511: {'name': 'networkauthenticationrequired', 'type': 'servererror'}
+	};
+	tanMap = {};
+	sinMap = {};
+	cosMap = {};
+	atanMap = {};
+	asinMap = {};
+	acosMap = {};
+	coreModules = [
+		'pollyFills',
+		'loops',
+		'elements',
+		//'sprites',
+		//'audio',
+		'views'
+		//'bitmaps',
+		//'animations',
+		//'paths',
+		//'collisions'
+	];
+	version = '0.2.1';
 
 	//return RedLocomotive
 	return RedLocomotive;
 
 	function RedLocomotive(config) {
-		var coreModules, emitter, api, returned;
+		var api, emitter, request;
 
 		//Validate
-		if(typeof require === 'undefined') { throw new Error('Cannot initialize Red Locomotive. RequireJS is required.'); }
 		if(config && typeof config !== 'object') { throw new Error('Cannot initialize Red Locomotive. If given, the config must be an object.'); }
-
-		emitter = EventEmitter();
-		returned = false;
-		api = {
-			"on": emitter.on
-		};
-		coreModules = [
-			'pollyFills',
-			'core',
-			//'audio',
-			//'viewports',
-			//'bitmaps',
-			//'sprites',
-			'elements'
-			//'animations',
-			//'paths',
-			//'collisions'
-		];
 
 		//config
 		config = extend({
@@ -42,91 +98,111 @@
 			"fps": 60
 		}, config || {});
 
-		//require config
-		require.config({
-			"baseUrl": config.baseUrl + 'red-locomotive/'
-		});
+		//create the emitter
+		emitter = EventEmitter();
+		api = {
+			"on": emitter.on,
+			"RedLocomotive": version
+		};
 
-		//Load & Exec
-		require(coreModules, function(    ) {
-			var modules, engineData, mI, module, moduleApi, namespace;
+		//load require if its missing then the init function
+		if(typeof require === 'undefined') {
+			request = FetchScript(config.baseUrl + 'red-locomotive/require.js');
+			request.on('success', init);
+		} else {
+			init();
+		}
 
-			//get the modules
-			modules = Array.prototype.slice.apply(arguments),
+		return api;
 
-			//create the vars
-			engineData = {
-				"config": config,
-				"elements": [],
-				"viewports": [],
-				"emitter": emitter
-			};
-			merge(api, {
-				"extend": extend,
-				"clone": clone,
-				"compare": compare,
-				"merge": merge,
-				"reduce": reduce,
-				"mirror": mirror,
-				"watch": watch,
-				"funnel": Funnel,
-				"emitter": EventEmitter,
-				"distance": distance,
-				"degree": degree,
-				"vector": vector,
-				"coordinates": coordinates,
-				"tan": tan,
-				"sin": sin,
-				"cos": cos,
-				"atan": atan,
-				"asin": asin,
-				"acos": acos
+		function init() {
+
+			//require config
+			require.config({
+				"baseUrl": config.baseUrl + 'red-locomotive/'
 			});
 
-			//execute the callback passing it the engine's api and fire the loaded event
-			emitter.set('init', api);
+			//Load & Exec
+			require(coreModules, function(    ) {
+				var modules, engineData, mI, module, moduleApi, namespace;
 
-			//loop through the core modules
-			for(mI = 0; mI < modules.length; mI += 1) {
-				module = modules[mI];
-				moduleApi = {};
-				namespace = '';
+				//get the modules
+				modules = Array.prototype.slice.apply(arguments),
 
-				//validate module
-				if (typeof module !== 'function') {
-					throw new Error('Cannot initialize Red Locomotive. Tried to load an invalid module. Modules must be functions.');
+				//create the vars
+				engineData = {
+					"config": config,
+					"emitter": emitter
+				};
+
+				//extend the api object
+				api.extend = extend;
+				api.clone = clone;
+				api.compare = compare;
+				api.merge = merge;
+				api.reduce = reduce;
+				api.mirror = mirror;
+				api.watch = Watch;
+				api.funnel = Funnel;
+				api.emitter = EventEmitter;
+				api.distance = distance;
+				api.degree = degree;
+				api.vector = vector;
+				api.coordinates = coordinates;
+				api.tan = tan;
+				api.sin = sin;
+				api.cos = cos;
+				api.atan = atan;
+				api.asin = asin;
+				api.acos = acos;
+				api.fetch = Fetch;
+				api.fetch.script = FetchScript;
+				api.fetch.json = FetchJSON;
+				api.request = Request;
+				api.bridge = Bridge;
+
+				//execute the callback passing it the engine's api and fire the loaded event
+				emitter.set('init', api);
+
+				//loop through the core modules
+				for(mI = 0; mI < modules.length; mI += 1) {
+					module = modules[mI];
+					moduleApi = {};
+					namespace = '';
+
+					//validate module
+					if (typeof module !== 'function') {
+						throw new Error('Cannot initialize Red Locomotive. Tried to load an invalid module. Modules must be functions.');
+					}
+
+					//get the module namespace
+					namespace = typeof module.namespace !== 'string' && module.name || module.namespace;
+
+					//execute the module
+					moduleApi = module(api, engineData);
+
+					//validate the module api
+					if (moduleApi && typeof moduleApi !== 'object') {
+						throw new Error('Cannot initialize Red Locomotive. Encountered a broken module that failed to return a valid api object. If modules return an api, the api must be an object.');
+					}
+
+					//merge its api into the engine api
+					if (moduleApi && namespace !== '') {
+
+						//add the module api to its namespace
+						api[namespace] = moduleApi;
+					} else if(moduleApi) {
+
+						//add the module api to root
+						merge(api, moduleApi);
+					}
+
 				}
 
-				//get the module namespace
-				namespace = typeof module.namespace !== 'string' && module.name || module.namespace;
-
-				//execute the module
-				moduleApi = module(api, engineData);
-
-				//validate the module api
-				if (moduleApi && typeof moduleApi !== 'object') {
-					throw new Error('Cannot initialize Red Locomotive. Encountered a broken module that failed to return a valid api object. If modules return an api, the api must be an object.');
-				}
-
-				//merge its api into the engine api
-				if (moduleApi && namespace !== '') {
-
-					//add the module api to its namespace
-					api[namespace] = moduleApi;
-				} else if(moduleApi) {
-
-					//add the module api to root
-					merge(api, moduleApi);
-				}
-
-			}
-
-			//signal ready next tick
-			emitter.set('ready', api);
-		});
-
-		returned = true;
-		return api;
+				//signal ready next tick
+				emitter.set('ready', api);
+			});
+		}
 	}
 
 	///////////////////////////////////
@@ -362,7 +438,7 @@
 	 * Watches a data structure and fires a callback when it changes
 	 * @param data
 	 */
-	function watch(data) {
+	function Watch(data) {
 		var mirrorObj, emitter, api, running;
 
 		if(!typeof onChange === 'function') { throw new Error('UnityJS: I tried to watch a data object for changes but the application gave me a invalid function as a handler.'); }
@@ -562,12 +638,7 @@
 
 				//execute each argument set
 				for(sEI = 0; sEI < setCallbacks[event].length; sEI += 1) {
-					(function(event, sEI){
-						//trigger the set event
-						setTimeout(function() {
-							trigger.apply(this, setCallbacks[event][sEI]);
-						});
-					})(event, sEI);
+					trigger.apply(this, setCallbacks[event][sEI]);
 				}
 			}
 
@@ -912,8 +983,8 @@
 		q = Math.floor(degree / 90);
 
 		//get the opposite and adjacent
-		o = Math.round(sin(degree90) * distance);
-		a = Math.round(cos(degree90) * distance);
+		o = sin(degree90) * distance;
+		a = cos(degree90) * distance;
 
 		//inverse quadrify
 		return aquad(q, o, a);
@@ -959,5 +1030,294 @@
 			acosMap[input] = Math.acos(input) / Math.PI * 180;
 		}
 		return acosMap[input];
+	}
+
+	////////////////////////
+	//    AJAX METHODS    //
+	////////////////////////
+
+	/**
+	 * Fetches a file from a url and emitts a success event passing its contents to a its handlers
+	 * @param url
+	 */
+	function Fetch(url, cache) {
+		return Request(url, 'GET', null, cache);
+	}
+
+	/**
+	 * Fetches a script and executes it on the window. Emitts a success event once done.
+	 * @param scriptUrl
+	 */
+	function FetchScript(scriptUrl) {
+		var api, emitter, request;
+
+		emitter = EventEmitter();
+
+		request = Fetch(scriptUrl);
+		request.on('success', function(data) {
+
+			try {
+				eval.call(window, data);
+				emitter.trigger('success');
+			} catch(err) {
+				emitter.trigger('error', err);
+			}
+
+		});
+
+		api = {
+			"on": emitter.on,
+			"clear": request.clear
+		};
+
+		return api;
+	}
+
+	/**
+	 * Fetches a json body and parses it.
+	 * @param jsonUrl
+	 */
+	function FetchJSON(jsonUrl) {
+		var api, emitter, request, json;
+
+		emitter = EventEmitter();
+
+		request = Fetch(jsonUrl);
+		request.on('success', function(data) {
+			json = JSON.parse(data);
+			emitter.trigger('success', json);
+		});
+
+		api = {
+			"on": emitter.on,
+			"clear": request.clear
+		};
+
+		return api;
+	}
+
+	/**
+	 * Creates a request object
+	 * @param url
+	 * @param method
+	 * @param data
+	 * @param cache
+	 */
+	function Request(url, method, data, cache) {
+		var xhrObject, emitter, api, statusCode, dataURI;
+
+		//defaults
+		data = data || null;
+		method = method.toUpperCase() || 'GET';
+		if(typeof method === 'object') { cache = data; data = method; method = null; }
+
+		//validate
+		if(typeof url !== 'string') { throw new Error('Cannot issue request. The url must be a string.'); }
+		if(typeof method !== 'string') { throw new Error('Cannot issue request. The method must be a string.'); }
+		if(data && typeof data !== 'string' && typeof data !== 'object') { throw new Error('Cannot issue request. If given the data must be and object.'); }
+		if(cache !== undefined && cache !== true && cache !== false) { throw new Error('Cannot issue request. The cache flag is set it must be a boolean.'); }
+
+		//create an emitter
+		emitter = EventEmitter();
+
+		//create the api
+		api = {
+			"clear": clear,
+			"on": emitter.on
+		};
+
+		//if no cache then apend the time
+		if(!cache && method !== 'GET') { url += '?t=' + Date.now(); }
+
+		//create the XHR object
+		xhrObject = createXHR() || createActiveXXHR() || (function() { throw new Error('Cannot issue request. Failed to construct XHR object. The host document object model does not support AJAX.') })();
+
+		//setup an event handler
+		xhrObject.onreadystatechange = function(){
+			if(xhrObject.readyState !== 4) { return; }
+
+			//find a matching status code
+			statusCode = statusCodes[xhrObject.status];
+
+			if(!statusCodes[xhrObject.status]) {
+				statusCode = {'name': 'unknown', 'type': 'error' }
+			}
+
+			//trigger the events
+			emitter.trigger([xhrObject.status.toString(), statusCode.name, statusCode.type], xhrObject.responseText);
+
+			//if a server error occurs also fire the error event
+			if(statusCode.type === 'servererror') {
+				emitter.trigger('error', xhrObject.responseText);
+			}
+
+			//fire the status event
+			emitter.trigger('status', xhrObject.status, statusCode.name, statusCode.type);
+		};
+
+		//fetch the script
+		try {
+
+			//POST
+			if(method === 'POST') {
+				xhrObject.open(method, url, true);
+
+				if(typeof data === 'object') { data = JSON.stringify(data); }
+
+				dataURI = 'data=' + encodeURIComponent(data);
+
+				xhrObject.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+				xhrObject.send(dataURI);
+			}
+
+			//PUT
+			else if(method === 'PUT') {
+
+				xhrObject.open(method, url, true);
+
+				if(typeof data === 'object') {
+
+					data = JSON.stringify(data);
+					xhrObject.setRequestHeader("Content-type", "application/json");
+
+				} else {
+
+					xhrObject.setRequestHeader("Content-type", "text/plain");
+
+				}
+
+				xhrObject.send(data);
+
+			} else if(method === 'GET') {
+
+				if(typeof data === 'object') { data = JSON.stringify(data); }
+
+				if(data !== 'null') {
+					dataURI = '?data=' + encodeURIComponent(data);
+				} else {
+					dataURI = '';
+				}
+
+				xhrObject.open(method, url + dataURI, true);
+				xhrObject.send();
+
+			} else {
+				xhrObject.open(method, url, true);
+				xhrObject.send();
+			}
+
+		} catch(err) {
+			emitter.trigger('failed', err);
+		}
+
+		return api;
+
+		/**
+		 * Creates an XHR
+		 */
+		function createXHR() {
+			try {
+				return new XMLHttpRequest();
+			} catch(e) {}
+
+			return false;
+		}
+
+		/**
+		 * Creates an ActiveX XHR
+		 */
+		function createActiveXXHR() {
+			try {
+				return new ActiveXObject("Microsoft.XMLHTTP");
+			} catch(e) {}
+
+			return false;
+		}
+
+		function clear() {
+			xhrObject.onreadystatechange = function(){};
+		}
+	}
+
+	/**
+	 * Creates a REST pipe. The pipe will maintain a data object on the client side
+	 * @param url
+	 */
+	function Bridge(url, interval, method) {
+		var emitter, data, api, running, firstUpdate;
+
+		//defualts
+		interval = interval || 1000;
+		firstUpdate = true;
+
+		//validate
+		if(typeof url !== 'string') { throw new Error('Cannot pipe REST. The url must be a string.'); }
+
+		//create an emitter
+		emitter = EventEmitter();
+
+		//create the data object
+		data = {};
+
+		//build the api
+		api = {
+			"data": data,
+			"on": emitter.on,
+			"clear": clear
+		};
+
+		running = true;
+		(function exec() {
+			var req;
+
+			if(!running) { return; }
+
+			//send and fetch the data
+			req = Request(url, firstUpdate && 'GET' || method || 'PUT', data, true);
+
+			//on success
+			req.on('success', function(json) {
+
+				json = json || "{}";
+
+				try {
+
+					//parse the data
+					json = JSON.parse(json);
+
+					//check to see if the data is different
+					if(!compare(data, json)) {
+
+						//merge in the data
+						mirror(data, json);
+
+						//fire the update event
+						emitter.trigger('update', clone(data));
+
+						if(firstUpdate) {
+							emitter.trigger('ready', data);
+							firstUpdate = false;
+						}
+					}
+
+				} catch(err) {
+					emitter.trigger('invalid');
+				}
+
+				//re-execute
+				setTimeout(exec, interval);
+			});
+
+			//on fail
+			req.on('error', function() {
+				emitter.trigger('error');
+			});
+		})();
+
+		return api;
+
+		function clear() {
+			running = false;
+		}
 	}
 });

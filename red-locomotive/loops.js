@@ -1,15 +1,6 @@
 define(function() {
-
-	//set the namespace to the root
 	init.namespace = '';
-
-	//return the core
 	return init;
-
-	/**
-	 * Initialises the core module
-	 * @param engine
-	 */
 	function init(engine, data) {
 		var api, fpms, coreLoop;
 
@@ -179,7 +170,7 @@ define(function() {
 		}
 
 		/**
-		 * Fires a callback after a given number of core loop cycles
+		 * Fires a callback after a given number Fof core loop cycles
 		 */
 		function after(callback, timeout) {
 

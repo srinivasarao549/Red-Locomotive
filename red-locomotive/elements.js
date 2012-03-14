@@ -7,88 +7,163 @@ define(function() {
 	return init;
 
 	function init(engine, data) {
-		var api, elements;
+		var api, elements, elementsEmitter;
 
-		var api = {
+		//save the elements object to the data object
+		elements = data.elements = [];
+
+		//create the elements event emitter
+		elementsEmitter = engine.emitter();
+
+		//attach the on method to to the elements array
+		elements.on = elementsEmitter.on;
+
+		api = {
 			"element": Element
 		};
 
-		//create the elements array
-		elements = [];
-
-		//save the elements object to the data object
-		data.elements = elements;
-
 		return api;
 
-		function Element(id, sprites, x, y, z, sC, sR) {
-			var visible, element, api;
+		function Element(id, spriteId, parentId, x, y, z, w, h) {
+			var element, api, data, emitter, canvas, context;
 
 			//set defaults
-			sprites = sprites || false;
+			if(typeof spriteId === 'number') {
+				h = w;
+				w = z;
+				z = y;
+				y = x;
+				x = parentId;
+				parentId = spriteId;
+				spriteId = null;
+			}
+			if(typeof parentId === 'number') {
+				h = w;
+				w = z;
+				z = y;
+				y = x;
+				x = parentId;
+				parentId = null;
+			}
+
 			x = x || 0;
 			y = y || 0;
 			z = z || 0;
-			sC = sC || 0;
-			sR = sR || 0;
+
 
 			//validate the arguments
-			if(typeof id !== 'string') { throw new Error('Element id must be a string.'); }
-			if(typeof sprites !== 'string' && typeof sprites !== 'object') { throw new Error('Element sprites must be a string or an object.'); }
-			if(typeof x !== 'number') { throw new Error('Element x must be a number.'); }
-			if(typeof y !== 'number') { throw new Error('Element y must be a number.'); }
-			if(typeof z !== 'number') { throw new Error('Element z must be a number.'); }
-			if(typeof sC !== 'number') { throw new Error('Element sC must be a number.'); }
-			if(typeof sR !== 'number') { throw new Error('Element sR must be a number.'); }
+			if(typeof id !== 'string') { throw new Error('Cannot create element. The id must be a string.'); }
+			if(spriteId && typeof spriteId !== 'string') { throw new Error('Cannot create element. If given the spriteId must be a string.'); }
+			if(parentId && typeof parentId !== 'string') { throw new Error('Cannot create element. If given the parentId must be a string.'); }
+			if(typeof x !== 'number') { throw new Error('Cannot create element. The x position must be a number.'); }
+			if(typeof y !== 'number') { throw new Error('Cannot create element. The y position must be a number.'); }
+			if(typeof z !== 'number') { throw new Error('Cannot create element. The z position must be a number.'); }
+			if(typeof w !== 'number') { throw new Error('Cannot create element. The width must be a number.'); }
+			if(typeof h !== 'number') { throw new Error('Cannot create element. The height must be a number.'); }
 
-			visible = false;
+			//create the canvas
+			canvas = document.createElement('canvas');
+			context = canvas.getContext('2d');
+			canvas.width = w;
+			canvas.height = h;
+
+			//create the emitter
+			emitter = engine.emitter();
+
+			//bind render
+			emitter.on('render', render);
+			emitter.on('filter', filter);
+
+			//when the element is ready then emit an update event from the elements array
+			emitter.on('ready', function() { elementsEmitter.trigger('update'); });
+
+			//watch the data object
+			data = [];
+
+			engine.watch(data).on('update', function() {
+				emitter.trigger('render');
+			});
+
+			//create the element object and its api
+			element = {
+				"id": id,
+				"width": w,
+				"height": h,
+				"position": {"x": x, "y": y, "z": z},
+				"spriteId": spriteId,
+				"parentId": parentId,
+				"data": data,
+				"emitter": emitter,
+				"canvas": canvas,
+				"context": context
+			};
+
+			//add the element to the elements object
+			elements.push(element);
+
+			//create the api
 			api = {
 				"move": move,
 				"x": posX,
 				"y": posY,
 				"z": posZ,
-				"hide": hide,
-				"show": show,
-				"sprite": currentSprite,
-				"data": elementData
+				"width": width,
+				"height": height,
+				"sprite": sprite,
+				"data": element.data,
+				"on": emitter.on,
+				"trigger": emitter.trigger,
+				"set": emitter.set,
+				"pipe": emitter.pipe
 			};
 
-			//figure out if the element should be visible
-			if(sprites) { visible = true; }
-
-			//create the element object and its api
-			element = {
-				"type": "element",
-				"id": id,
-				"coords": {"x": x, "y": y, "z": z},
-				"sprites": sprites,
-				"sprite": { "column": sC, "row": sR },
-				"parentId": false,
-				"visible": visible,
-				"data": {}
-			};
-
-			//add the element to the elements object
-			data.elements.push(element);
+			emitter.trigger('render');
 
 			//return the api
 			return api;
 
 			/**
-			 * Moves the element to a new set of coords
+			 * Moves the element to a new set of position
 			 * @param x
 			 * @param y
 			 * @param z
 			 */
 			function move(x, y, z) {
+				var degree, distance, coordinates;
+
+				//defaults
+				if(x < 360 && x >= 0 && y && typeof z === 'undefined') {
+					degree = x;
+					distance = y;
+					x = y = z = null;
+				}
 
 				//validate
-				if(typeof x !== 'number') { throw new Error('Element x must be a number.'); }
-				if(typeof y !== 'number') { throw new Error('Element y must be a number.'); }
-				if(typeof z !== 'number') { throw new Error('Element z must be a number.'); }
+				if(x && typeof x !== 'number') { throw new Error('Cannot update element. The x position must be a number.'); }
+				if(y && typeof y !== 'number') { throw new Error('Cannot update element. The y position must be a number.'); }
+				if(z && typeof z !== 'number') { throw new Error('Cannot update element. The z position must be a number.'); }
+				if(degree && typeof degree !== 'number') { throw new Error('Cannot update element. The degree must be a number.'); }
+				if(distance && typeof distance !== 'number') { throw new Error('Cannot update element. The distance must be a number.'); }
 
-				//update the coords
-				element.coords = {"x": x, "y": y, "z": z}
+				//position
+				if(x && y && z) {
+
+					element.position = {
+						"x": x,
+						"y": y,
+						"z": z
+					}
+					emitter.trigger('ready');
+
+				//vector
+				} else if(degree && distance) {
+					coordinates = engine.coordinates(degree, distance);
+					element.position.x += coordinates.x;
+					element.position.y += coordinates.y;
+					emitter.trigger('ready');
+				}
+
+				return element.position;
 			}
 
 			/**
@@ -96,22 +171,14 @@ define(function() {
 			 * @param x
 			 */
 			function posX(x) {
+				if(x && typeof x !== 'number') { throw new Error('Cannot update element. The x position must be a number.'); }
 
 				if(x) {
-
-					//validate
-					if(typeof x !== 'number') { throw new Error('Element x must be a number.'); }
-
-					//update the x coord
-					element.coords.x = x;
-
-					return true;
-
-				} else {
-
-					return element.coords.x;
-
+					element.position.x = x;
+					emitter.trigger('ready');
 				}
+
+				return element.position.x;
 			}
 
 			/**
@@ -119,22 +186,14 @@ define(function() {
 			 * @param y
 			 */
 			function posY(y) {
+				if(y && typeof y !== 'number') { throw new Error('Cannot update element. The y position must be a number.'); }
 
 				if(y) {
-
-					//validate
-					if(typeof y !== 'number') { throw new Error('Element y must be a number.'); }
-
-					//update the y coord
-					element.coords.y = y;
-
-					return true;
-
-				} else {
-
-					return element.coords.y;
-
+					element.position.y = y;
+					emitter.trigger('ready');
 				}
+
+				return element.position.y;
 			}
 
 			/**
@@ -142,79 +201,85 @@ define(function() {
 			 * @param z
 			 */
 			function posZ(z) {
+				if(z && typeof z !== 'number') { throw new Error('Cannot update element. The z position must be a number.'); }
 
 				if(z) {
-					
-					//validate
-					if(typeof z !== 'number') { throw new Error('Element z must be a number.'); }
-
-					//update the z coord
-					element.coords.z = z;
-
-					return true;
-
-				} else {
-
-					return element.coords.z;
-
+					element.position.z = z;
+					emitter.trigger('ready');
 				}
-			}
-			
-			function currentSprite(sC, sR) {
-				
-				if(sC && sR) {
-					
-					if(typeof sC !== 'number') { throw new Error('Element sC must be a number.'); }
-					if(typeof sR !== 'number') { throw new Error('Element sR must be a number.'); }
-					
-					element.sprite.column = sC;
-					element.sprite.row = sR;
-					
-					return true;
-					
-				} else {
 
-					return {"column": element.sprite.column, "row": element.sprite.row };
-
-				}
-				
+				return element.position.z;
 			}
 
-			function elementData(key, value) {
+			function width(w) {
+				if(w && typeof w !== 'number') { throw new Error('Cannot update element. The width must be a number.'); }
 
-				if(typeof key !== 'string') { throw new Error('Cannot read/write data to element. The data key must be a string.'); }
+				if(w) {
+					element.width = canvas.width = w;
+					emitter.trigger('render');
+				}
 
-				//read
-				if(typeof value === 'undefined') {
+				return element.width;
+			}
+			function height(h) {
+				if(h && typeof h !== 'number') { throw new Error('Cannot update element. The height must be a number.'); }
 
-					//read the data from the key
-					return typeof element.data[key] === 'undefined' && false || element.data[key];
+				if(h) {
+					element.height = canvas.height = h;
+					emitter.trigger('render');
+				}
 
+				return element.height;
+			}
 
-				//write
+			/**
+			 * set/get the element sprite
+			 * @param spriteId
+			 */
+			function sprite(spriteId) {
+				if(spriteId && spriteId !== 'string') { throw new Error('Cannot update element. The spriteId must be a string.') }
+
+				if(spriteId) {
+					element.spriteId = spriteId;
+					emitter.trigger('render');
+					return spriteId;
 				} else {
-
-					//write the data to the key
-					element.data[key] = value;
-
-					return true;
+					return element.spriteId;
 				}
 			}
 
 			/**
-			 * hides the element
+			 * Applies the sprite to the element's canvas
 			 */
-			function hide() {
-				element.visible = false;
+			function render() {
+
+				/*
+				var sprite;
+
+				//get the sprite
+				sprite = data.sprites[element.spriteId];
+
+				//if the sprite is invalid set the sprite to null
+				if(!sprite) { element.spriteId = null; return; }
+
+				//draw the sprite to the element
+				context.drawImage(sprite.canvas, 0, 0, canvas.width, canvas.height);
+				*/
+				context.fillStyle = '#000';
+				context.fillRect(0, 0, canvas.width, canvas.height);
+
+				//trigger the filter event
+				emitter.trigger('filter');
 			}
 
 			/**
-			 * shows the element
+			 * Applies filters to the element canvas
 			 */
-			function show() {
-				element.visible = true;
+			function filter() {
+				//TODO make this actually do something
+
+				emitter.trigger('ready');
 			}
 		}
 	}
-
 });
