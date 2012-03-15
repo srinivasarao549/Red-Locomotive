@@ -23,11 +23,12 @@
 		C.dev && console.log('Config', C);
 
 		//setup the viewport
-		V = RL.view('main', 0, 0, 0, 1, innerWidth, innerHeight);
-		window.onresize = function() { V.width(innerWidth); V.height(innerHeight); }
-		document.body.appendChild(V.element);
+		//V = RL.view('main', 0, 0, 0, 1, innerWidth, innerHeight);
+		//window.onresize = function() { V.width(innerWidth); V.height(innerHeight); }
+		//document.body.appendChild(V.element);
 		
 		//create an element
 		window.element = RL.element('test', 40, 40, 0, 100, 100);
+		window.element.element('test2', 40, 40, 0, 100, 100);
 	}
 })();

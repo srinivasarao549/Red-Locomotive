@@ -1,47 +1,74 @@
 define(function() {
+
+	//set core namespace
 	init.namespace = '';
+
+	//return the init function
 	return init;
+
+	/**
+	 * Creates the views api
+	 * @param engine
+	 * @param data
+	 */
 	function init(engine, data) {
 		var views;
 
-		data.elements.on('update', function() { console.log('redraw'); });
-
 		views = data.views = [];
 
-		function createView(id, x, y, z, d, w, h) {
-			var api, view, canvas, context;
+		function View(id, x, y, z, range, width, height) {
+			var view;
 
 			//defaults
-			if(typeof w === 'undefined' && typeof h === 'undefined') {
-				w = x;
-				h = y;
+			if(typeof width !== 'number' && typeof height !== 'number' ) {
+				width = x;
+				height = y;
 				x = y = null;
 			}
 
 			//validate
 			if(typeof id !== 'string') { throw new Error('Cannot create view. The id must be a string.'); }
-			if(typeof w !== 'number') { throw new Error('Cannot create view. The width must be a number.'); }
-			if(typeof h !== 'number') { throw new Error('Cannot create view. The height must be a number.'); }
+			if(typeof width !== 'number') { throw new Error('Cannot create view. The width must be a number.'); }
+			if(typeof height !== 'number') { throw new Error('Cannot create view. The height must be a number.'); }
 			if(x && typeof x !== 'number') { throw new Error('Cannot create view. The x must be a number.'); }
 			if(y && typeof y !== 'number') { throw new Error('Cannot create view. The y must be a number.'); }
 			if(z && typeof z !== 'number') { throw new Error('Cannot create view. The z must be a number.'); }
-			if(d && typeof d !== 'number') { throw new Error('Cannot create view. The depth must be a number.'); }
+			if(range && typeof range !== 'number') { throw new Error('Cannot create view. The depth must be a number.'); }
+
+			view = {
+				"id": id,
+				"x": x,
+				"y": y,
+				"z": z,
+				"range": range,
+				"width": width,
+				"height": height
+			};
+
+			//add the element to the elements object
+			views.push(view);
+
+			return wrap(view);
+		}
+
+		function wrap(view) {
+			var api, view, canvas, context, redrawRegion;
 
 			canvas = document.createElement('canvas');
 			context = canvas.getContext('2d');
 
-			canvas.width = w;
-			canvas.height = h;
+			canvas.width = width;
+			canvas.height = height;
 
 			view = {
 				"id": id,
-				"width": w,
-				"height": h,
+				"width": width,
+				"height": height,
 				"position": {
 					"x": x,
 					"y": y,
 					"z": z,
-					"depth": d
+					"depth": range
 				},
 				"canvas": canvas,
 				"context": context
@@ -54,9 +81,9 @@ define(function() {
 			api = {
 				"element": canvas,
 				"move": move,
-				"x": posX,
-				"y": posY,
-				"z": posZ,
+				"x": viewX,
+				"y": viewY,
+				"z": viewZ,
 				"h": depth,
 				"width": width,
 				"height": height
@@ -104,7 +131,7 @@ define(function() {
 				}
 			}
 
-			function posX(x) {
+			function viewX(x) {
 				if(x && typeof x === 'number') { throw new Error('Cannot update view. The x position must be a number'); }
 				if(x) {
 					return view.position.x = x;
@@ -113,7 +140,7 @@ define(function() {
 				}
 			}
 
-			function posY(y) {
+			function viewY(y) {
 				if(y && typeof y === 'number') { throw new Error('Cannot update view. The y position must be a number'); }
 				if(y) {
 					return view.position.y = y;
@@ -122,7 +149,7 @@ define(function() {
 				}
 			}
 
-			function posZ(z) {
+			function viewZ(z) {
 				if(z && typeof z === 'number') { throw new Error('Cannot update view. The z position must be a number'); }
 				if(z) {
 					return view.position.z = z;
@@ -206,6 +233,44 @@ define(function() {
 				for(eI = 0; eI < elements.length; eI += 1) {
 					element = elements[eI];
 					context.drawImage(element.canvas, element.position.x, element.position.y, element.width, element.height);
+				}
+			}
+
+			function dispatchRedraw() {
+				if(redrawRegion.width && redrawRegion.height) {
+
+					//reset the redraw Region
+					redrawRegion.x = 0;
+					redrawRegion.y = 0;
+					redrawRegion.width = 0;
+					redrawRegion.height = 0;
+				}
+			}
+
+			function queueFrame(element) {
+
+				//x
+				if(element.x < redrawRegion.x) { redrawRegion.x = element.x; }
+				if(element.lastState.x < redrawRegion.x) { redrawRegion.x = element.lastState.x; }
+
+				//y
+				if(element.y < redrawRegion.y) { redrawRegion.y = element.y; }
+				if(element.lastState.y < redrawRegion.y) { redrawRegion.y = element.lastState.y; }
+
+				//width
+				if(element.x + element.width > redrawRegion.x + redrawRegion.width) {
+					redrawRegion.width = element.x + element.width - redrawRegion.x;
+				}
+				if(element.lastState.x + element.lastState.width > redrawRegion.x + redrawRegion.width) {
+					redrawRegion.width = element.lastState.x + element.lastState.width - redrawRegion.x;
+				}
+
+				//height
+				if(element.y + element.height > redrawRegion.y + redrawRegion.height) {
+					redrawRegion.height = element.y + element.height - redrawRegion.y;
+				}
+				if(element.lastState.y + element.lastState.height > redrawRegion.y + redrawRegion.height) {
+					redrawRegion.height = element.lastState.y + element.lastState.height - redrawRegion.y;
 				}
 			}
 		}
