@@ -11,7 +11,7 @@ define(function() {
 
 		//create the elements array and elements emitter
 		elementsEmitter = engine.emitter();
-		elements = data.elements = [];
+		elements = data.elements = {};
 		elements.on = elementsEmitter.on;
 
 		data.coreLoop.on('cycle', function() {
@@ -66,14 +66,14 @@ define(function() {
 			};
 
 			//add the element to the elements object
-			elements.push(element);
+			elements[id] = element;
 
 			//wrap the element
 			return wrap(element);
 		}
 
 		function wrap(element) {
-			var api, emitter, canvas, context, updated;
+			var api, emitter, canvas, context, regionData;
 
 			/*
 			If the element was imported via json it will not have an emitter
@@ -82,6 +82,9 @@ define(function() {
 			emitter = element.emitter = element.emitter || engine.emitter();
 			canvas = element.canvas = element.canvas || document.createElement('canvas');
 			context = element.context = element.context || canvas.getContext('2d');
+
+			//create the region object
+			regionData  = {};
 
 			//create the api
 			api = {};
@@ -96,7 +99,7 @@ define(function() {
 			api.height = elementHeight;
 			api.sprite = elementSpriteId;
 			api.property = elementProperty;
-			api.element = elementChild;
+			api.element = SubElement;
 			api.on = emitter.on;
 			api.data = elementData;
 
@@ -178,7 +181,7 @@ define(function() {
 			/**
 			 * Creates a child element
 			 */
-			function elementChild(   ) {
+			function SubElement(   ) {
 				var args, childElement;
 				args = Array.prototype.slice.apply(arguments);
 
@@ -191,36 +194,54 @@ define(function() {
 				return childElement;
 			}
 
-			/**
-			 * Render the element canvas
-			 */
 			function render() {
-				var eI, childElement;
+				var subElement, subElements, id;
 
-				if(!updated) { return; }
-				updated = false;
+				//get the subElement within the element
+				subElements = {};
+				for(id in elements) {
+					if(!elements.hasOwnProperty(id)) { continue; }
 
-				//set the canvas size
-				canvas.width = element.width;
-				canvas.height = element.height;
+					subElement = elements[id];
 
-				context.clearRect(0, 0, canvas.width, canvas.height);
-				
-				//get the children
-				for(eI = 0; eI < elements.length; eI += 1) {
-					if(elements[eI].parentId !== element.id) { continue; }
+					if(subElement.x + subElement.width < element.x) { continue; }
+					if(subElement.x > element.x + element.width) { continue; }
+					if(subElement.y + subElement.height < element.y) { continue; }
+					if(subElement.y > element.y + element.height) { continue; }
 
-					childElement = elements[eI];
-
-					context.drawImage(childElement.canvas, childElement.x, childElement.y, childElement.width, childElement.height);
+					subElements[id] = subElement;
 				}
 
-				context.fillStyle = 'rgba(0, 0, 255, 0.4)';
-				context.fillRect(0, 0, canvas.width, canvas.height);
+				//extend each element's region
+				for(id in subElements) {
+					if(!elements.hasOwnProperty(id)) { continue; }
 
-				//once done filtering fire the update event
-				emitter.trigger('update', element);
-				elementsEmitter.trigger('update', element);
+					subElement = subElements[id];
+
+					if(!regionData[id]) {
+						regionData[id] = Region(subElement.x, subElement.y, subElement.width, subElement.height);
+					} else {
+						regionData[id] = regionData[id].extend(subElement.x, subElement.y, subElement.width, subElement.height);
+					}
+
+
+				}
+
+				//create composite regions
+				for(id in subElements) {
+					if(!elements.hasOwnProperty(id)) { continue; }
+					regionData[id]
+				}
+
+
+				//set each element's new region
+				for(id in subElements) {
+					if(!elements.hasOwnProperty(id)) { continue; }
+
+					subElement = subElements[id];
+
+					regionData[id](subElement.x, subElement.y, subElement.width, subElement.height);
+				}
 			}
 
 			/**
@@ -229,7 +250,7 @@ define(function() {
 			function elementData() {
 				var data;
 
-				data = engine.clone(element);
+				data = engine.clone(id);
 
 				delete data.canvas;
 				delete data.context;
@@ -238,5 +259,69 @@ define(function() {
 				return data;
 			}
 		}
+
+		var region = Region(100, 100, 100, 100);
+
+		console.log(region());
+
+		console.log(region.extend(50, 150, 50, 50)())
+
+		function Region(x, y, width, height) {
+		    var region = { "x": x, "y": y, "width": width, "height": height };
+
+		    function extend(x, y, width, height) {
+		        var newX, newY, newWidth, newHeight;
+
+		        if(x < region.x) { newX = x; } else { newX = region.x; }
+		        if(y < region.y) { newY = y; } else { newY = region.y; }
+
+		        if(width + x > region.width + region.x) {
+		            newWidth = width + x - region.x;
+		        } else {
+		            newWidth = width + x - region.x;
+		        }
+				sdfasdfasfasfas fasf adf asdf asfa a///////////////
+
+		        return Region();
+		    }
+
+		    function contains(x, y, width, height) {
+		        if(x < region.x) { return false; }
+		        if(x + width > region.x + region.width) { return false; }
+		        if(y < region.y) { return false; }
+		        if(y + height > region.y + region.height) { return false; }
+		        return true;
+		    }
+
+		    function overlaps(x, y, width, height) {
+		        if(x + width < region.x) { return false; }
+		        if(x > region.x + region.width) { return false; }
+		        if(y + height < region.y) { return false; }
+		        if(y > region.y + region.height) { return false; }
+		        return true;
+		    }
+
+		    function setGetRegion(x, y, width, height) {
+		        if(x && y && width && height) {
+		            region = { "x": x, "y": y, "width": width, "height": height };
+		        } else if(x || y || width || height) {
+		            throw new Error('Cannot get region. The x, y, width, and height are required.')
+		        } else {
+		            return region;
+		        }
+		    }
+
+		    setGetRegion.extend = extend;
+		    setGetRegion.overlaps = overlaps;
+		    setGetRegion.contains = contains;
+		    return setGetRegion;
+		}​
+
+		function simplifyRegions() {
+
+		}
+
+
+
 	}
 });
