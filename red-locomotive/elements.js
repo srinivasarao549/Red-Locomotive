@@ -14,6 +14,10 @@ define(function() {
 		elements = data.elements = [];
 		elements.on = elementsEmitter.on;
 
+		data.coreLoop.on('cycle', function() {
+			elementsEmitter.trigger('render');
+		});
+
 		//create the elements api tree
 		api = {
 			"element": Element
@@ -22,7 +26,7 @@ define(function() {
 		return api;
 
 		function Element(id, spriteId, x, y, z, width, height) {
-			var element, api, emitter, canvas, context;
+			var element;
 
 			//set defaults
 			if(typeof spriteId === 'number') {
@@ -58,17 +62,7 @@ define(function() {
 				"width": width,
 				"height": height,
 				"spriteId": spriteId,
-				"parentId": null,
-				"lastState": {
-					"id": id,
-					"x": x,
-					"y": y,
-					"z": z,
-					"width": width,
-					"height": height,
-					"spriteId": spriteId,
-					"parentId": null
-				}
+				"parentId": null
 			};
 
 			//add the element to the elements object
@@ -79,30 +73,21 @@ define(function() {
 		}
 
 		function wrap(element) {
-			var api, emitter, canvas, context;
+			var api, emitter, canvas, context, updated;
 
 			/*
 			If the element was imported via json it will not have an emitter
 			or canvas. It such a case they will need to be created.
 			 */
-			if(!element.emitter) {
-				emitter = element.emitter = engine.emitter();
-			} else {
-				emitter = element.emitter;
-			}
-			if(!element.canvas) {
-				canvas = element.canvas = document.createElement('canvas');
-				context = element.context = canvas.getContext('2d');
-				render();
-			} else {
-				canvas = element.canvas;
-				context = element.context;
-			}
+			emitter = element.emitter = element.emitter || engine.emitter();
+			canvas = element.canvas = element.canvas || document.createElement('canvas');
+			context = element.context = element.context || canvas.getContext('2d');
 
 			//create the api
 			api = {};
-			api.position = elementPosition;
-			api.position.along = elementVector;
+			api.move = elementPosition;
+			api.move.vector = elementVector;
+			api.move.relative = elementPositionRelative;
 			api.rotation = elementRotation;
 			api.x = elementX;
 			api.y = elementY;
@@ -115,6 +100,8 @@ define(function() {
 			api.on = emitter.on;
 			api.data = elementData;
 
+			elementsEmitter.on('render', render);
+
 			//return the api
 			return api;
 
@@ -122,18 +109,13 @@ define(function() {
 			 * Sets/gets proerties
 			 * @param key
 			 * @param value
-			 * @param callback
 			 */
 			function elementProperty(key, value) {
 				if(typeof key !== 'string') { throw new Error('Cannot update element. The key must be a string.'); }
-				if(key === 'lastState') { throw new Error('Cannot update element. The key may not be "lastState"'); }
-				if(key === 'id') { throw new Error('Cannot update element. The key may not be "id"'); }
 				if(value) {
-					if(element[key]) {
-						element.lastState[key] = element[key];
-					}
+					if(key === 'id') { throw new Error('Cannot update element. The key may not be "id"'); }
 					element[key] = value;
-					render();
+					updated = true;
 				}
 				return element[key];
 			}
@@ -155,6 +137,13 @@ define(function() {
 				};
 			}
 
+			function elementPositionRelative(x, y, z) {
+				x = x || 0;
+				y = y || 0;
+				z = z || 0;
+				return elementPosition(element.x + x, element.y + y, element.y + z);
+			}
+
 			function elementRotation() {
 
 			}
@@ -172,8 +161,8 @@ define(function() {
 				if(z && typeof z !== 'number') { throw new Error('Cannot update element. The z position must be a number.'); }
 				coordinates = engine.coordinates(degree, distance);
 				return {
-					"x": elementProperty('x', coordinates.x),
-					"y": elementProperty('y', coordinates.y),
+					"x": elementProperty('x', element.x + coordinates.x),
+					"y": elementProperty('y', element.y + coordinates.y),
 					"z": elementProperty('z', z)
 				};
 			}
@@ -181,9 +170,9 @@ define(function() {
 			//property setters/getters
 			function elementX(x) { return elementProperty('x', x); }
 			function elementY(y) { return elementProperty('y', y); }
-			function elementZ(z) { return elementProperty('x', z); }
-			function elementWidth(width) { return elementProperty('x', width); }
-			function elementHeight(height) { return elementProperty('x', height); }
+			function elementZ(z) { return elementProperty('z', z); }
+			function elementWidth(width) { return elementProperty('width', width); }
+			function elementHeight(height) { return elementProperty('height', height); }
 			function elementSpriteId(spriteId) { return elementProperty('spriteId', spriteId); }
 
 			/**
@@ -195,7 +184,9 @@ define(function() {
 
 				childElement = Element.apply(this, args);
 				childElement.property('parentId', element.id);
-				childElement.on('update', render);
+				childElement.on('update', function() {
+					updated = true;
+				});
 
 				return childElement;
 			}
@@ -204,13 +195,32 @@ define(function() {
 			 * Render the element canvas
 			 */
 			function render() {
-				context.fillStyle = '#000';
+				var eI, childElement;
+
+				if(!updated) { return; }
+				updated = false;
+
+				//set the canvas size
+				canvas.width = element.width;
+				canvas.height = element.height;
+
+				context.clearRect(0, 0, canvas.width, canvas.height);
+				
+				//get the children
+				for(eI = 0; eI < elements.length; eI += 1) {
+					if(elements[eI].parentId !== element.id) { continue; }
+
+					childElement = elements[eI];
+
+					context.drawImage(childElement.canvas, childElement.x, childElement.y, childElement.width, childElement.height);
+				}
+
+				context.fillStyle = 'rgba(0, 0, 255, 0.4)';
 				context.fillRect(0, 0, canvas.width, canvas.height);
 
 				//once done filtering fire the update event
 				emitter.trigger('update', element);
 				elementsEmitter.trigger('update', element);
-				console.log('update', element);
 			}
 
 			/**

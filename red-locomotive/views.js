@@ -12,9 +12,21 @@ define(function() {
 	 * @param data
 	 */
 	function init(engine, data) {
-		var views;
+		var viewEmitter, api, views;
 
 		views = data.views = [];
+
+		viewEmitter = engine.emitter();
+
+		data.coreLoop.on('cycle', function() {
+			viewEmitter.trigger('render');
+		});
+
+		api = {
+			"view": View
+		};
+
+		return api;
 
 		function View(id, x, y, z, range, width, height) {
 			var view;
@@ -52,151 +64,106 @@ define(function() {
 		}
 
 		function wrap(view) {
-			var api, view, canvas, context, redrawRegion;
+			var api, canvas, context, regionData, emitter;
 
-			canvas = document.createElement('canvas');
-			context = canvas.getContext('2d');
-
-			canvas.width = width;
-			canvas.height = height;
-
-			view = {
-				"id": id,
-				"width": width,
-				"height": height,
-				"position": {
-					"x": x,
-					"y": y,
-					"z": z,
-					"depth": range
-				},
-				"canvas": canvas,
-				"context": context
+			regionData = {
+				"x": null,
+				"y": null,
+				"width": null,
+				"height": null,
+				"elementRegions": {}
 			};
+			
+			emitter = view.emitter = view.emitter || engine.emitter();
+			canvas = view.canvas = view.canvas || document.createElement('canvas');
+			context = view.context = view.context || canvas.getContext('2d');
 
-			views.push(view);
+			api = {};
+			api.position = viewPosition;
+			api.position.along = viewVector;
+			api.rotation = viewRotation;
+			api.x = viewX;
+			api.y = viewY;
+			api.z = viewZ;
+			api.width = viewWidth;
+			api.height = viewHeight;
+			api.property = viewProperty;
+			api.on = emitter.on;
+			api.element = canvas;
 
-			data.elements.on('update', render);
-
-			api = {
-				"element": canvas,
-				"move": move,
-				"x": viewX,
-				"y": viewY,
-				"z": viewZ,
-				"h": depth,
-				"width": width,
-				"height": height
-			};
+			viewEmitter.on('render', render);
 
 			return api;
 
-			function move(x, y, z, d) {
-				var degree, distance, coordinates;
-
-				//defaults
-				if(x < 360 && x >= 0 && y && typeof z === 'undefined' && typeof d === 'undefined') {
-					degree = x;
-					distance = y;
-					x = y = z = d = null;
+			/**
+			 * Sets/gets proerties
+			 * @param key
+			 * @param value
+			 */
+			function viewProperty(key, value) {
+				if(typeof key !== 'string') { throw new Error('Cannot update view. The key must be a string.'); }
+				if(key === 'id') { throw new Error('Cannot update view. The key may not be "id"'); }
+				if(value) {
+					view[key] = value;
 				}
+				return view[key];
+			}
 
-				//validate
+			/**
+			 * Moves the element to a new set of position
+			 * @param x
+			 * @param y
+			 * @param z
+			 */
+			function viewPosition(x, y, z) {
 				if(x && typeof x !== 'number') { throw new Error('Cannot update view. The x position must be a number.'); }
 				if(y && typeof y !== 'number') { throw new Error('Cannot update view. The y position must be a number.'); }
 				if(z && typeof z !== 'number') { throw new Error('Cannot update view. The z position must be a number.'); }
-				if(d && typeof d !== 'number') { throw new Error('Cannot update view. The h position must be a number.'); }
-				if(degree && typeof degree !== 'number') { throw new Error('Cannot update view. The degree must be a number.'); }
-				if(distance && typeof distance !== 'number') { throw new Error('Cannot update view. The distance must be a number.'); }
-
-				//position
-				if(x && y && z && d) {
-
-					return view.position = {
-						"x": x,
-						"y": y,
-						"z": z,
-						"depth": d
-					};
-
-				//vector
-				} else if(degree && distance) {
-					coordinates = engine.coordinates(degree, distance);
-					view.position.x += coordinates.x;
-					view.position.y += coordinates.y;
-
-				//return
-				} else {
-					return view.position;
-				}
+				return {
+					"x": viewProperty('x', x),
+					"y": viewProperty('y', y),
+					"z": viewProperty('z', z)
+				};
 			}
 
-			function viewX(x) {
-				if(x && typeof x === 'number') { throw new Error('Cannot update view. The x position must be a number'); }
-				if(x) {
-					return view.position.x = x;
-				} else {
-					return view.position.x;
-				}
+			/**
+			 * Moves the element to the end of a vector
+			 * @param degree
+			 * @param distance
+			 * @param z
+			 */
+			function viewVector(degree, distance, z) {
+				var coordinates;
+				if(typeof degree !== 'number') { throw new Error('Cannot update view. The degree must be a number.'); }
+				if(typeof distance !== 'number') { throw new Error('Cannot update view. The distance must be a number.'); }
+				if(z && typeof z !== 'number') { throw new Error('Cannot update view. The z position must be a number.'); }
+				coordinates = engine.coordinates(degree, distance);
+				return {
+					"x": viewProperty('x', coordinates.x),
+					"y": viewProperty('y', coordinates.y),
+					"z": viewProperty('z', z)
+				};
 			}
 
-			function viewY(y) {
-				if(y && typeof y === 'number') { throw new Error('Cannot update view. The y position must be a number'); }
-				if(y) {
-					return view.position.y = y;
-				} else {
-					return view.position.y;
-				}
-			}
+			function viewRotation() {}
 
-			function viewZ(z) {
-				if(z && typeof z === 'number') { throw new Error('Cannot update view. The z position must be a number'); }
-				if(z) {
-					return view.position.z = z;
-				} else {
-					return view.position.z;
-				}
-			}
-
-			function depth(d) {
-				if(d && typeof d === 'number') { throw new Error('Cannot update view. The h position must be a number'); }
-				if(d) {
-					return view.position.depth = d;
-				} else {
-					return view.position.depth;
-				}
-			}
-
-			function width(w) {
-				if(w && typeof w !== 'number') { throw new Error('Cannot update view. The width must be a number.'); }
-
-				if(w) {
-					return view.width = canvas.width = w;
-				} else {
-					return view.width;
-				}
-			}
-
-			function height(h) {
-				if(h && typeof h !== 'number') { throw new Error('Cannot update view. The height must be a number.'); }
-
-				if(h) {
-					return view.height = canvas.height = h;
-				} else {
-					return view.height;
-				}
-			}
+			//property setters/getters
+			function viewX(x) { return viewProperty('x', x); }
+			function viewY(y) { return viewProperty('y', y); }
+			function viewZ(z) { return viewProperty('z', z); }
+			function viewWidth(width) { return viewProperty('width', width); }
+			function viewHeight(height) { return viewProperty('height', height); }
 
 			function render() {
-				var vx, vy, vz, vd, vw, vh, elements, eI, element, ex, ey, ez, ew, eh;
+				var vx, vy, vz, vd, vw, vh, elements, eI, element, ex, ey, ez, ew, eh, regionElement;
 
-				//clear the canvas
-				context.clearRect(0, 0, canvas.width, canvas.height);
+				canvas.width !== view.width && (canvas.width = view.width);
+				canvas.height !== view.height && (canvas.height = view.height);
 
-				vx = view.position.x;
-				vy = view.position.y;
-				vz = view.position.z;
-				vd = view.position.depth;
+				vx = view.x;
+				vy = view.y;
+				vz = view.z;
+				vd = view.depth;
 				vw = view.width;
 				vh = view.height;
 
@@ -204,79 +171,82 @@ define(function() {
 				elements = [];
 				for(eI = 0; eI < data.elements.length; eI += 1) {
 					element = data.elements[eI];
-					ex = element.position.x;
-					ey = element.position.y;
-					ez = element.position.z;
+					ex = element.x;
+					ey = element.y;
+					ez = element.z;
 					ew = element.width;
 					eh = element.height;
+
+					//parent
+					if(element.parentId) { continue; }
 
 					//sprite
 					if(typeof element.spriteId === 'string') { continue; }
 
 					//left
-					if(ex + ew <= vx) { console.log('x left'); continue; }
+					if(ex + ew <= vx) { continue; }
 					//right
-					if(ex >= vx + vw) { console.log('x right'); continue; }
+					if(ex >= vx + vw) { continue; }
 					//top
-					if(ey + eh <= vy) { console.log('x top'); continue; }
+					if(ey + eh <= vy) { continue; }
 					//bottom
-					if(ey >= vy + vh) { console.log('x bottom'); continue; }
+					if(ey >= vy + vh) { continue; }
 					//height
-					if(ez > vz + vd || ez < vz) { console.log('x height'); continue; }
+					if(ez > vz + vd || ez < vz) { continue; }
 
-					console.log('added element' + element.id);
+					//expand the region to fit the element
+					if(!regionData.x || ex < regionData.x) { regionData.x = ex; }
+					if(!regionData.y ||ey < regionData.y) { regionData.y = ey; }
+					if(!regionData.width ||ex + element.width > regionData.x + regionData.width) {
+						regionData.width = ex + element.width - regionData.x;
+					}
+					if(!regionData.height || ey + element.height > regionData.y + regionData.height) {
+						regionData.height = ey + element.height - regionData.y;
+					}
+
+					//if the element has a previous region position then fit it aswell
+					if(regionData.elementRegions[element.id]) {
+						regionElement = regionData.elementRegions[element.id];
+						if(regionElement.x < regionData.x) { regionData.x = regionElement.x; }
+						if(regionElement.y < regionData.y) { regionData.y = regionElement.y; }
+						if(regionElement.x + regionElement.width > regionData.x + regionData.width) {
+							regionData.width = regionElement.x + regionElement.width - regionData.x;
+						}
+						if(regionElement.y + regionElement.height > regionData.y + regionData.height) {
+							regionData.height = regionElement.y + regionElement.height - regionData.y;
+						}
+					}
+
+					//update the element's region data
+					regionData.elementRegions[element.id] = {
+						"x": element.x,
+						"y": element.y,
+						"width": element.width,
+						"height": element.height
+					};
 
 					elements.push(element);
 				}
 
-				//draw each element
-				for(eI = 0; eI < elements.length; eI += 1) {
-					element = elements[eI];
-					context.drawImage(element.canvas, element.position.x, element.position.y, element.width, element.height);
-				}
-			}
+				if(regionData.width && regionData.height) {
 
-			function dispatchRedraw() {
-				if(redrawRegion.width && redrawRegion.height) {
+					//clear the canvas
+					context.clearRect(regionData.x, regionData.y, regionData.width, regionData.height);
+					context.strokeStyle = 'rgba(255, 0, 0, 1)';
+					context.lineWidth = 1;
+					//context.strokeRect(regionData.x, regionData.y, regionData.width, regionData.height);
 
 					//reset the redraw Region
-					redrawRegion.x = 0;
-					redrawRegion.y = 0;
-					redrawRegion.width = 0;
-					redrawRegion.height = 0;
+					regionData.x = regionData.y = regionData.height = regionData.width = null;
+
+					//draw each element
+					for(eI = 0; eI < elements.length; eI += 1) {
+						element = elements[eI];
+
+						context.drawImage(element.canvas, element.x, element.y, element.width, element.height);
+					}
 				}
 			}
-
-			function queueFrame(element) {
-
-				//x
-				if(element.x < redrawRegion.x) { redrawRegion.x = element.x; }
-				if(element.lastState.x < redrawRegion.x) { redrawRegion.x = element.lastState.x; }
-
-				//y
-				if(element.y < redrawRegion.y) { redrawRegion.y = element.y; }
-				if(element.lastState.y < redrawRegion.y) { redrawRegion.y = element.lastState.y; }
-
-				//width
-				if(element.x + element.width > redrawRegion.x + redrawRegion.width) {
-					redrawRegion.width = element.x + element.width - redrawRegion.x;
-				}
-				if(element.lastState.x + element.lastState.width > redrawRegion.x + redrawRegion.width) {
-					redrawRegion.width = element.lastState.x + element.lastState.width - redrawRegion.x;
-				}
-
-				//height
-				if(element.y + element.height > redrawRegion.y + redrawRegion.height) {
-					redrawRegion.height = element.y + element.height - redrawRegion.y;
-				}
-				if(element.lastState.y + element.lastState.height > redrawRegion.y + redrawRegion.height) {
-					redrawRegion.height = element.lastState.y + element.lastState.height - redrawRegion.y;
-				}
-			}
-		}
-
-		return {
-			'view': createView
 		}
 	}
 });

@@ -5,16 +5,13 @@ define(function() {
 		var api, fpms, coreLoop;
 
 		//set the fpms
-		fpms = (1000 / data.config.fps) || 1;
+		fpms = (1000 / data.config.fps);
 
 		//create the core loop
 		coreLoop = data.coreLoop = EventLoop(fpms);
 
 		//run the loop once all the modules have loaded
 		engine.on('ready', coreLoop.start);
-
-		//pipe the core loop events to the core emitter
-		data.emitter.pipe(coreLoop);
 
 		api = {
 			"loop": EventLoop,
@@ -141,7 +138,7 @@ define(function() {
 				bind,
 				api;
 
-			bind = engine.on('every', function(    ) {
+			bind = coreLoop.on('every', function(    ) {
 				var args = Array.prototype.slice.apply(arguments);
 
 				if(i < interval) {
@@ -183,7 +180,7 @@ define(function() {
 				bind,
 				api;
 
-			bind = engine.on('every', function(    ) {
+			bind = coreLoop.on('every', function(    ) {
 				var args = Array.prototype.slice.apply(arguments);
 
 				if(i < timeout) {
