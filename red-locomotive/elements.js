@@ -260,68 +260,58 @@ define(function() {
 			}
 		}
 
-		var region = Region(100, 100, 100, 100);
-
-		console.log(region());
-
-		console.log(region.extend(50, 150, 50, 50)())
-
 		function Region(x, y, width, height) {
-		    var region = { "x": x, "y": y, "width": width, "height": height };
+			var region = { "x": x, "y": y, "width": width, "height": height };
 
-		    function extend(x, y, width, height) {
-		        var newX, newY, newWidth, newHeight;
+			setGetRegion.extend = extend;
+			setGetRegion.overlaps = overlaps;
+			setGetRegion.contains = contains;
+			return setGetRegion;
 
-		        if(x < region.x) { newX = x; } else { newX = region.x; }
-		        if(y < region.y) { newY = y; } else { newY = region.y; }
+			function extend(x, y, width, height) {
+				if(x < region.x) {
+					region.width += region.x - x;
+					region.x = x;
+				}
+				if(y < region.y) {
+					region.height += region.y - y;
+					region.y = y;
+				}
+				console.log(x + width, region.x + region.width);
+				if(x + width > region.x + region.width) {
+					region.width = x + width - region.x;
+				}
 
-		        if(width + x > region.width + region.x) {
-		            newWidth = width + x - region.x;
-		        } else {
-		            newWidth = width + x - region.x;
-		        }
-				sdfasdfasfasfas fasf adf asdf asfa a///////////////
+				if(y + height > region.y + region.height) {
+					region.height = y + height - region.y;
+				}
+			}
 
-		        return Region();
-		    }
+			function contains(x, y, width, height) {
+				if(x < region.x) { return false; }
+				if(x + width > region.x + region.width) { return false; }
+				if(y < region.y) { return false; }
+				if(y + height > region.y + region.height) { return false; }
+				return true;
+			}
 
-		    function contains(x, y, width, height) {
-		        if(x < region.x) { return false; }
-		        if(x + width > region.x + region.width) { return false; }
-		        if(y < region.y) { return false; }
-		        if(y + height > region.y + region.height) { return false; }
-		        return true;
-		    }
+			function overlaps(x, y, width, height) {
+				if(x + width < region.x) { return false; }
+				if(x > region.x + region.width) { return false; }
+				if(y + height < region.y) { return false; }
+				if(y > region.y + region.height) { return false; }
+				return true;
+			}
 
-		    function overlaps(x, y, width, height) {
-		        if(x + width < region.x) { return false; }
-		        if(x > region.x + region.width) { return false; }
-		        if(y + height < region.y) { return false; }
-		        if(y > region.y + region.height) { return false; }
-		        return true;
-		    }
-
-		    function setGetRegion(x, y, width, height) {
-		        if(x && y && width && height) {
-		            region = { "x": x, "y": y, "width": width, "height": height };
-		        } else if(x || y || width || height) {
-		            throw new Error('Cannot get region. The x, y, width, and height are required.')
-		        } else {
-		            return region;
-		        }
-		    }
-
-		    setGetRegion.extend = extend;
-		    setGetRegion.overlaps = overlaps;
-		    setGetRegion.contains = contains;
-		    return setGetRegion;
+			function setGetRegion(x, y, width, height) {
+				if(x && y && width && height) {
+					region = { "x": x, "y": y, "width": width, "height": height };
+				} else if(x || y || width || height) {
+					throw new Error('Cannot get region. The x, y, width, and height are required.')
+				} else {
+					return region;
+				}
+			}
 		}​
-
-		function simplifyRegions() {
-
-		}
-
-
-
 	}
 });
